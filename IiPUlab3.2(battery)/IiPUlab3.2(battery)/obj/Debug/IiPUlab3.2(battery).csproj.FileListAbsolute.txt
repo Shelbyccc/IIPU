@@ -1,0 +1,9 @@
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\bin\Debug\IiPUlab3.2(battery).exe.config
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\obj\Debug\IiPUlab3.2(battery).csprojResolveAssemblyReference.cache
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\obj\Debug\IiPUlab3._2_battery_.Battery.resources
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\obj\Debug\IiPUlab3._2_battery_.Properties.Resources.resources
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\obj\Debug\IiPUlab3.2(battery).csproj.GenerateResource.Cache
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\bin\Debug\IiPUlab3.2(battery).exe
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\bin\Debug\IiPUlab3.2(battery).pdb
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\obj\Debug\IiPUlab3.2(battery).exe
+D:\5sem\progi\IiPUlab3.2(battery)\IiPUlab3.2(battery)\obj\Debug\IiPUlab3.2(battery).pdb

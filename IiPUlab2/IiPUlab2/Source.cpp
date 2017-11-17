@@ -1,17 +1,30 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <iomanip>
 #include <Windows.h>
 #include <WinIoCtl.h>
 #include <ntddscsi.h>
 #include <conio.h>
+#include <math.h>
 
 using namespace std;
 
 #define bThousand 1024
 #define Hundred 100
 #define BYTE_SIZE 8
+#define BUFSIZE 100
 
 char* busType[] = { "UNKNOWN", "SCSI", "ATAPI", "ATA", "ONE_TREE_NINE_FOUR", "SSA", "FIBRE", "USB", "RAID", "ISCSI", "SAS", "SATA", "SD", "MMC" };
+
+void init(HANDLE& diskHandle) {
+	//Открытие файла с информацией о диске
+	diskHandle = CreateFile("\\\\.\\PhysicalDrive0", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL);
+	if (diskHandle == INVALID_HANDLE_VALUE) {
+		cout << GetLastError();
+		_getch();
+		return;
+	}
+}
 
 void getDeviceInfo(HANDLE diskHandle, STORAGE_PROPERTY_QUERY storagePropertyQuery) {
 
@@ -29,7 +42,7 @@ void getDeviceInfo(HANDLE diskHandle, STORAGE_PROPERTY_QUERY storagePropertyQuer
 	}
 
 	//Выводим свойства диска.
-	cout << "Model:    " << setw(30) << (char*)(deviceDescriptor)+deviceDescriptor->ProductIdOffset << endl;
+	cout << "Model:         " << (char*)(deviceDescriptor)+deviceDescriptor->ProductIdOffset << endl;
 	cout << "Version        " << (char*)(deviceDescriptor)+deviceDescriptor->ProductRevisionOffset << endl;
 	cout << "Bus type:      " << busType[deviceDescriptor->BusType] << endl;
 	cout << "Serial number: " << (char*)(deviceDescriptor)+deviceDescriptor->SerialNumberOffset << endl;
@@ -49,8 +62,10 @@ void getMemoryInfo() {
 	totalDiskSpace.QuadPart = 0;				//Будет содержать полный размер диска.
 	totalFreeSpace.QuadPart = 0;				//Будет содеражть свободное место диска.
 
-	//Получаем битовую маску, представляющую имеющиеся в настоящие время дисковые накопители.
-	unsigned long int logicalDrivesCount = GetLogicalDrives();
+	char szTemp[BUFSIZE];
+	szTemp[0] = '\0';
+
+	GetLogicalDriveStrings(BUFSIZE - 1, szTemp);
 
 	cout.setf(ios::left);
 	cout << setw(16) << "Total space[Mb]"
@@ -58,22 +73,17 @@ void getMemoryInfo() {
 		<< setw(16) << "Busy space[%]"
 		<< endl;
 
-	//Анализ полученной битовой маски(бит 0 - диск А, бит 1 - диск B).
-	for (char var = 'A'; var < 'Z'; var++) {
-		if ((logicalDrivesCount >> var - 65) & 1 && var != 'F') {
-			path = var;
-			path.append(":\\");
-			//Получаем информация о размере диска и свободном пространстве диска.
-			GetDiskFreeSpaceEx(path.c_str(), 0, &diskSpace, &freeSpace);
-			diskSpace.QuadPart = diskSpace.QuadPart / (bThousand * bThousand);
-			freeSpace.QuadPart = freeSpace.QuadPart / (bThousand * bThousand);
-
-			//Определяем тип диска(3 - жесткий диск)
-			if (GetDriveType(path.c_str()) == 3) {
-				totalDiskSpace.QuadPart += diskSpace.QuadPart;
-				totalFreeSpace.QuadPart += freeSpace.QuadPart;
-			}
-		}
+	int count = 0;
+	while (szTemp[count])
+	{
+		path = szTemp[count];
+		path.append(":\\");
+		GetDiskFreeSpaceEx(path.c_str(), 0, &diskSpace, &freeSpace);
+		diskSpace.QuadPart = diskSpace.QuadPart / (bThousand * bThousand);
+		freeSpace.QuadPart = freeSpace.QuadPart / (bThousand * bThousand);
+		totalDiskSpace.QuadPart += diskSpace.QuadPart;
+		totalFreeSpace.QuadPart += freeSpace.QuadPart;
+		count += 4;
 	}
 
 	cout << setw(16) << totalDiskSpace.QuadPart
@@ -106,7 +116,8 @@ void getAtaPioDmaSupportStandarts(HANDLE diskHandle) {
 		return;
 	}
 	WORD *data = (WORD *)(identifyDataBuffer + sizeof(ATA_PASS_THROUGH_EX));	//Получаем указатель на массив полученных данных
-	short ataSupportByte = data[80];
+	
+	unsigned short ataSupportByte = data[80];
 	int i = 2 * BYTE_SIZE;
 	int bitArray[2 * BYTE_SIZE];
 	//Превращаем байты с информацией о поддержке ATA в массив бит
@@ -119,60 +130,48 @@ void getAtaPioDmaSupportStandarts(HANDLE diskHandle) {
 	cout << "ATA Support:   ";
 	for (int i = 8; i >= 4; i--) {
 		if (bitArray[i] == 1) {
-			cout << "ATA" << i;
-			if (i != 4) {
-				cout << ", ";
-			}
+			if (i != 8) cout << ", ";
+			cout << "ATA " << i;
 		}
 	}
 	cout << endl;
 
 	//Вывод поддерживаемых режимов DMA
-	unsigned short dmaSupportedBytes = data[63];
+	unsigned short dmaSupportByte = data[63];
 	int i2 = 2 * BYTE_SIZE;
 	//Превращаем байты с информацией о поддержке DMA в массив бит
 	while (i2--) {
-		bitArray[i2] = dmaSupportedBytes & 32768 ? 1 : 0;
-		dmaSupportedBytes = dmaSupportedBytes << 1;
+		bitArray[i2] = dmaSupportByte & 32768 ? 1 : 0;
+		dmaSupportByte = dmaSupportByte << 1;
 	}
 
 	//Анализируем полученный массив бит.
 	cout << "DMA Support:   ";
-	for (int i = 0; i <8; i++) {
+	for (int i = 0; i <= 2; i++) {
 		if (bitArray[i] == 1) {
-			cout << "DMA" << i;
-			if (i != 2) cout << ", ";
+			if (i != 0) cout << ", ";
+			cout << "DMA mode " << i;
 		}
 	}
 	cout << endl;
 
-	unsigned short pioSupportedBytes = data[63];
+	unsigned short pioSupportByte = data[64];
 	int i3 = 2 * BYTE_SIZE;
 	//Превращаем байты с информацией о поддержке PIO в массив бит
 	while (i3--) {
-		bitArray[i3] = pioSupportedBytes & 32768 ? 1 : 0;
-		pioSupportedBytes = pioSupportedBytes << 1;
+		bitArray[i3] = pioSupportByte & 32768 ? 1 : 0;
+		pioSupportByte = pioSupportByte << 1;
 	}
 
 	//Анализируем полученный массив бит.
 	cout << "PIO Support:   ";
-	for (int i = 0; i <2; i++) {
+	for (int i = 0; i <= 7; i++) {
 		if (bitArray[i] == 1) {
-			cout << "PIO" << i + 3;
-			if (i != 1) cout << ", ";
+			if (i != 0) cout << ", ";
+			cout << "PIO mode " << i;
 		}
 	}
 	cout << endl;
-}
-
-void init(HANDLE& diskHandle) {
-	//Открытие файла с информацией о диске
-	diskHandle = CreateFile("\\\\.\\PhysicalDrive0", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL);
-	if (diskHandle == INVALID_HANDLE_VALUE) {
-		cout << GetLastError();
-		_getch();
-		return;
-	}
 }
 
 int main()
