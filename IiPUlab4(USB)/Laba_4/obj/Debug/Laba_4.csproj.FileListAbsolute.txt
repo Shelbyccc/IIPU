@@ -1,0 +1,30 @@
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\Laba_4.exe.config
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\Laba_4.exe
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\Laba_4.pdb
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\Chimp.Logging.Core.dll
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\MediaDevices.dll
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\UsbEject.dll
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\Chimp.Logging.Core.xml
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\MediaDevices.xml
+C:\Users\zahar\Desktop\USB-master\Laba_4\bin\Debug\UsbEject.xml
+C:\Users\zahar\Desktop\USB-master\Laba_4\obj\Debug\Laba_4.csprojResolveAssemblyReference.cache
+C:\Users\zahar\Desktop\USB-master\Laba_4\obj\Debug\Laba_4.USBView.resources
+C:\Users\zahar\Desktop\USB-master\Laba_4\obj\Debug\Laba_4.Properties.Resources.resources
+C:\Users\zahar\Desktop\USB-master\Laba_4\obj\Debug\Laba_4.csproj.GenerateResource.Cache
+C:\Users\zahar\Desktop\USB-master\Laba_4\obj\Debug\Laba_4.exe
+C:\Users\zahar\Desktop\USB-master\Laba_4\obj\Debug\Laba_4.pdb
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\Laba_4.exe.config
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\obj\Debug\Laba_4.exe
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\obj\Debug\Laba_4.pdb
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\Laba_4.exe
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\Laba_4.pdb
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\Chimp.Logging.Core.dll
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\MediaDevices.dll
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\UsbEject.dll
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\Chimp.Logging.Core.xml
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\MediaDevices.xml
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\bin\Debug\UsbEject.xml
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\obj\Debug\Laba_4.csprojResolveAssemblyReference.cache
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\obj\Debug\Laba_4.USBView.resources
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\obj\Debug\Laba_4.Properties.Resources.resources
+D:\webdownload\Interfaces-and-Peripheral-Devices-master (1)\Interfaces-and-Peripheral-Devices-master\4.USB\Laba_4\obj\Debug\Laba_4.csproj.GenerateResource.Cache

@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Chimp.Logging.Core</name>
+    </assembly>
+    <members>
+        <member name="T:Chimp.Logging.NoOpLoggerFactory">
+            <summary>
+            No-op logger factory implementation.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.NoOpLoggerFactory.Instance">
+            <summary>
+            No-op logger instance.
+            </summary>
+        </member>
+        <member name="T:Chimp.Logging.ILogger">
+            <summary>
+            Logger interface.
+            </summary>
+        </member>
+        <member name="M:Chimp.Logging.ILogger.Log(Chimp.Logging.LogLevel,System.Object)">
+            <summary>
+            Writes an object to the log.
+            </summary>
+            <param name="level">Log level.</param>
+            <param name="obj">Object to write.</param>
+        </member>
+        <member name="M:Chimp.Logging.ILogger.Log(Chimp.Logging.LogLevel,System.String)">
+            <summary>
+            Writes a string to the log.
+            </summary>
+            <param name="level">Log level.</param>
+            <param name="str">String to write.</param>
+        </member>
+        <member name="M:Chimp.Logging.ILogger.Log(Chimp.Logging.LogLevel,System.String,System.Object[])">
+            <summary>
+            Writes a formatted string to the log.
+            </summary>
+            <param name="level">Log level.</param>
+            <param name="format">Format string.</param>
+            <param name="args">Arguments.</param>
+        </member>
+        <member name="T:Chimp.Logging.ILoggerFactory">
+            <summary>
+            Logger factory interface.
+            </summary>
+        </member>
+        <member name="M:Chimp.Logging.ILoggerFactory.CreateLogger(System.String)">
+            <summary>
+            Creates a logger for a given name.
+            </summary>
+            <param name="name">Logger name.</param>
+            <returns>Logger.</returns>
+        </member>
+        <member name="M:Chimp.Logging.ILoggerFactory.CreateLogger(System.Type)">
+            <summary>
+            Creates a logger for a given type.
+            </summary>
+            <param name="type">Logger type.</param>
+            <returns>Logger.</returns>
+        </member>
+        <member name="M:Chimp.Logging.ILoggerFactory.CreateLogger``1">
+            <summary>
+            Creates a logger for a given type.
+            </summary>
+            <typeparam name="T">Logger type.</typeparam>
+            <returns>Logger.</returns>
+        </member>
+        <member name="T:Chimp.Logging.LogLevel">
+            <summary>
+            Log level.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.LogLevel.Trace">
+            <summary>
+            Trace.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.LogLevel.Debug">
+            <summary>
+            Debug.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.LogLevel.Information">
+            <summary>
+            Information.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.LogLevel.Warning">
+            <summary>
+            Warning.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.LogLevel.Error">
+            <summary>
+            Error.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.LogLevel.Critical">
+            <summary>
+            Critical.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.LogLevel.None">
+            <summary>
+            None.
+            </summary>
+        </member>
+        <member name="T:Chimp.Logging.NoOpLogger">
+            <summary>
+            No-op logger implementation.
+            </summary>
+        </member>
+        <member name="F:Chimp.Logging.NoOpLogger.Instance">
+            <summary>
+            No-op logger instance.
+            </summary>
+        </member>
+    </members>
+</doc>
