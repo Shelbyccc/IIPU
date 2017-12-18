@@ -1,13 +1,9 @@
 ﻿// Imapi2Interop.cs
 //
-// by Eric Haddan
-//
 // Parts taken from Microsoft's Interop.cs
-//
+// 
 using System;
 using System.Collections;
-using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
@@ -500,165 +496,6 @@ namespace IMAPI2.Interop
     public delegate void DiscFormat2Data_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
 
     #endregion // DDiscFormat2DataEvents
-
-    #region  DDiscFormat2EraseEvents
-    /// <summary>
-    /// Provides notification of media erase progress.
-    /// </summary>
-    [ComImport]
-    [TypeLibType(TypeLibTypeFlags.FNonExtensible|TypeLibTypeFlags.FOleAutomation|TypeLibTypeFlags.FDispatchable)]
-    [Guid("2735413A-7F64-5B0F-8F00-5D77AFBE261E")]
-    public interface DDiscFormat2EraseEvents
-    {
-        // Update to current progress
-        [DispId(0x200)]     // DISPID_IDISCFORMAT2ERASEEVENTS_UPDATE 
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void Update([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In] int elapsedSeconds, [In] int estimatedTotalSeconds);
-    }
-
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ComVisible(false)]
-    [ComEventInterface(typeof(DDiscFormat2EraseEvents), typeof(DiscFormat2Erase_EventProvider))]
-    public interface DiscFormat2Erase_Event
-    {
-        // Events
-        event DiscFormat2Erase_EventHandler Update;
-    }
-
-    [ClassInterface(ClassInterfaceType.None)]
-    internal sealed class DiscFormat2Erase_EventProvider : DiscFormat2Erase_Event, IDisposable
-    {
-        // Fields
-        private Hashtable m_aEventSinkHelpers = new Hashtable();
-        private IConnectionPoint m_connectionPoint = null;
-
-        // Methods
-        public DiscFormat2Erase_EventProvider(object pointContainer)
-        {
-            lock (this)
-            {
-                Guid eventsGuid = typeof(DDiscFormat2EraseEvents).GUID;
-                IConnectionPointContainer connectionPointContainer = pointContainer as IConnectionPointContainer;
-
-                connectionPointContainer.FindConnectionPoint(ref eventsGuid, out m_connectionPoint);
-            }
-        }
-
-        public event DiscFormat2Erase_EventHandler Update
-        {
-            add
-            {
-                lock (this)
-                {
-                    DiscFormat2Erase_SinkHelper helper =
-                        new DiscFormat2Erase_SinkHelper(value);
-                    int cookie = -1;
-
-                    m_connectionPoint.Advise(helper, out cookie);
-                    helper.Cookie = cookie;
-                    m_aEventSinkHelpers.Add(helper.UpdateDelegate, helper);
-                }
-            }
-
-            remove
-            {
-                lock (this)
-                {
-                    DiscFormat2Erase_SinkHelper helper =
-                        m_aEventSinkHelpers[value] as DiscFormat2Erase_SinkHelper;
-                    if (helper != null)
-                    {
-                        m_connectionPoint.Unadvise(helper.Cookie);
-                        m_aEventSinkHelpers.Remove(helper.UpdateDelegate);
-                    }
-                }
-            }
-        }
-
-        ~DiscFormat2Erase_EventProvider()
-        {
-            Cleanup();
-        }
-
-        public void Dispose()
-        {
-            Cleanup();
-            GC.SuppressFinalize(this);
-        }
-
-        private void Cleanup()
-        {
-            Monitor.Enter(this);
-            try
-            {
-                foreach (DiscFormat2Erase_SinkHelper helper in m_aEventSinkHelpers.Values)
-                {
-                    m_connectionPoint.Unadvise(helper.Cookie);
-                }
-
-                m_aEventSinkHelpers.Clear();
-                Marshal.ReleaseComObject(m_connectionPoint);
-            }
-            catch (SynchronizationLockException)
-            {
-                return;
-            }
-            finally
-            {
-                Monitor.Exit(this);
-            }
-        }
-    }
-
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ClassInterface(ClassInterfaceType.None)]
-    public sealed class DiscFormat2Erase_SinkHelper : DDiscFormat2EraseEvents
-    {
-        // Fields
-        private int m_dwCookie;
-        private DiscFormat2Erase_EventHandler m_UpdateDelegate;
-
-        public DiscFormat2Erase_SinkHelper(DiscFormat2Erase_EventHandler eventHandler)
-        {
-            if (eventHandler == null)
-                throw new ArgumentNullException("Delegate (callback function) cannot be null");
-            m_dwCookie = 0;
-            m_UpdateDelegate = eventHandler;
-        }
-
-        public void Update(object sender, int elapsedSeconds, int estimatedTotalSeconds)
-        {
-            m_UpdateDelegate(sender, elapsedSeconds, estimatedTotalSeconds);
-        }
-
-        public int Cookie
-        {
-            get
-            {
-                return m_dwCookie;
-            }
-            set
-            {
-                m_dwCookie = value;
-            }
-        }
-
-        public DiscFormat2Erase_EventHandler UpdateDelegate
-        {
-            get
-            {
-                return m_UpdateDelegate;
-            }
-            set
-            {
-                m_UpdateDelegate = value;
-            }
-        }
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DiscFormat2Erase_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)]object sender, [In] int elapsedSeconds, [In] int estimatedTotalSeconds);
-    #endregion  // DDiscFormat2EraseEvents
 
     #region DDiscFormat2RawCDEvents
 
@@ -3869,58 +3706,7 @@ namespace IMAPI2.Interop
     public class MsftDiscFormat2DataClass
     {
     }
-
-    [ComImport]
-    [Guid("27354156-8F64-5B0F-8F00-5D77AFBE261E")]
-    [CoClass(typeof(MsftDiscFormat2EraseClass))]
-    public interface MsftDiscFormat2Erase : IDiscFormat2Erase, DiscFormat2Erase_Event
-    {
-    }
-
-    [ComImport]
-    [Guid("2735412B-7F64-5B0F-8F00-5D77AFBE261E")]
-    [ComSourceInterfaces("DDiscFormat2EraseEvents\0")]
-    [TypeLibType(TypeLibTypeFlags.FCanCreate), ClassInterface(ClassInterfaceType.None)]
-    public class MsftDiscFormat2EraseClass
-    {
-    }
-
-    [ComImport]
-    [CoClass(typeof(MsftDiscFormat2RawCDClass))]
-    [Guid("27354155-8F64-5B0F-8F00-5D77AFBE261E")]
-    public interface MsftDiscFormat2RawCD : IDiscFormat2RawCD, DiscFormat2RawCD_Event
-    {
-    }
-
-    [ComImport]
-    [Guid("27354128-7F64-5B0F-8F00-5D77AFBE261E")]
-    [ComSourceInterfaces("DDiscFormat2RawCDEvents\0")]
-    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class MsftDiscFormat2RawCDClass
-    {
-    }
-
-    /// <summary>
-    /// Microsoft IMAPIv2 Track-at-Once Audio CD Writer
-    /// </summary>
-    [ComImport]
-    [Guid("27354154-8F64-5B0F-8F00-5D77AFBE261E")]
-    [CoClass(typeof(MsftDiscFormat2TrackAtOnceClass))]
-    public interface MsftDiscFormat2TrackAtOnce : IDiscFormat2TrackAtOnce, DiscFormat2TrackAtOnce_Event
-    {
-    }
-
-    [ComImport]
-    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
-    [ComSourceInterfaces("DDiscFormat2TrackAtOnceEvents\0")]
-    [Guid("27354129-7F64-5B0F-8F00-5D77AFBE261E")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class MsftDiscFormat2TrackAtOnceClass
-    {
-    }
-
-
+ 
     /// <summary>
     /// Microsoft IMAPIv2 Disc Master
     /// </summary>
@@ -3956,79 +3742,6 @@ namespace IMAPI2.Interop
     }
 
     [ComImport]
-    [Guid("27354151-7F64-5B0F-8F00-5D77AFBE261E")]
-    [CoClass(typeof(MsftMultisessionSequentialClass))]
-    public interface MsftMultisessionSequential : IMultisessionSequential
-    {
-    }
-
-    [ComImport]
-    [Guid("27354122-7F64-5B0F-8F00-5D77AFBE261E")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class MsftMultisessionSequentialClass
-    {
-    }
-
-    [ComImport]
-    [Guid("25983550-9D65-49CE-B335-40630D901227")]
-    [CoClass(typeof(MsftRawCDImageCreatorClass))]
-    public interface MsftRawCDImageCreator : IRawCDImageCreator
-    {
-    }
-
-    [ComImport]
-    [Guid("25983561-9D65-49CE-B335-40630D901227")]
-    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class MsftRawCDImageCreatorClass
-    {
-    }
-
-    [ComImport]
-    [Guid("27354135-7F64-5B0F-8F00-5D77AFBE261E")]
-    [CoClass(typeof(MsftWriteEngine2Class))]
-    public interface MsftWriteEngine2 : IWriteEngine2, DWriteEngine2_Event
-    {
-    }
-
-    [ComImport]
-    [Guid("2735412C-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
-    [ComSourceInterfaces("DWriteEngine2Events\0")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class MsftWriteEngine2Class
-    {
-    }
-
-    [ComImport]
-    [CoClass(typeof(MsftWriteSpeedDescriptorClass))]
-    [Guid("27354144-7F64-5B0F-8F00-5D77AFBE261E")]
-    public interface MsftWriteSpeedDescriptor : IWriteSpeedDescriptor
-    {
-    }
-
-    [ComImport][ClassInterface(ClassInterfaceType.None)]
-    [Guid("27354123-7F64-5B0F-8F00-5D77AFBE261E")]
-    public class MsftWriteSpeedDescriptorClass
-    {
-    }
-
-    [ComImport]
-    [CoClass(typeof(BootOptionsClass))]
-    [Guid("2C941FD4-975B-59BE-A960-9A2A262853A5")]
-    public interface BootOptions : IBootOptions
-    {
-    }
-
-    [ComImport]
-    [ClassInterface(ClassInterfaceType.None)]
-    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
-    [Guid("2C941FCE-975B-59BE-A960-9A2A262853A5")]
-    public class BootOptionsClass
-    {
-    }
-
-    [ComImport]
     [Guid("2C941FDA-975B-59BE-A960-9A2A262853A5")]
     [CoClass(typeof(EnumFsiItemsClass))]
     public interface EnumFsiItems : IEnumFsiItems
@@ -4039,48 +3752,6 @@ namespace IMAPI2.Interop
     [Guid("2C941FC6-975B-59BE-A960-9A2A262853A5")]
     [ClassInterface(ClassInterfaceType.None)]
     public class EnumFsiItemsClass
-    {
-    }
-
-    [ComImport]
-    [Guid("2C941FD6-975B-59BE-A960-9A2A262853A5")]
-    [CoClass(typeof(EnumProgressItemsClass))]
-    public interface EnumProgressItems : IEnumProgressItems
-    {
-    }
-
-    [ComImport]
-    [ClassInterface(ClassInterfaceType.None)]
-    [Guid("2C941FCA-975B-59BE-A960-9A2A262853A5")]
-    public class EnumProgressItemsClass
-    {
-    }
-
-    [ComImport]
-    [Guid("2C941FD8-975B-59BE-A960-9A2A262853A5")]
-    [CoClass(typeof(FileSystemImageResultClass))]
-    public interface FileSystemImageResult : IFileSystemImageResult
-    {
-    }
-
-    [ComImport]
-    [Guid("2C941FCC-975B-59BE-A960-9A2A262853A5")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class FileSystemImageResultClass
-    {
-    }
-
-    [ComImport]
-    [Guid("F7FB4B9B-6D96-4D7B-9115-201B144811EF")]
-    [CoClass(typeof(FsiDirectoryItemClass))]
-    public interface FsiDirectoryItem : IFsiDirectoryItem2
-    {
-    }
-
-    [ComImport]
-    [ClassInterface(ClassInterfaceType.None)]
-    [Guid("2C941FC8-975B-59BE-A960-9A2A262853A5")]
-    public class FsiDirectoryItemClass
     {
     }
 
@@ -4139,49 +3810,6 @@ namespace IMAPI2.Interop
     [ComSourceInterfaces("DFileSystemImageEvents\0DFileSystemImageImportEvents\0")]
     [ClassInterface(ClassInterfaceType.None)]
     public class MsftFileSystemImageClass
-    {
-    }
-
-    [ComImport]
-    [Guid("6CA38BE5-FBBB-4800-95A1-A438865EB0D4")]
-    [CoClass(typeof(MsftIsoImageManagerClass))]
-    public interface MsftIsoImageManager : IIsoImageManager
-    {
-    }
-
-    [ComImport]
-    [ClassInterface(ClassInterfaceType.None)]
-    [Guid("CEEE3B62-8F56-4056-869B-EF16917E3EFC")]
-    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
-    public class MsftIsoImageManagerClass
-    {
-    }
-
-    [ComImport]
-    [Guid("2C941FD5-975B-59BE-A960-9A2A262853A5")]
-    [CoClass(typeof(ProgressItemClass))]
-    public interface ProgressItem : IProgressItem
-    {
-    }
-
-    [ComImport]
-    [Guid("2C941FCB-975B-59BE-A960-9A2A262853A5")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class ProgressItemClass
-    {
-    }
-
-    [ComImport]
-    [Guid("2C941FD7-975B-59BE-A960-9A2A262853A5")]
-    [CoClass(typeof(ProgressItemsClass))]
-    public interface ProgressItems : IProgressItems
-    {
-    }
-
-    [ComImport]
-    [Guid("2C941FC9-975B-59BE-A960-9A2A262853A5")]
-    [ClassInterface(ClassInterfaceType.None)]
-    public class ProgressItemsClass
     {
     }
 }

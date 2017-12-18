@@ -50,24 +50,9 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="NativeWifi\Interop.cs" />
-    <Compile Include="NativeWifi\WlanApi.cs" />
     <Compile Include="NetworkSearcher.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SimpleWifi\AccessPoint.cs" />
-    <Compile Include="SimpleWifi\AuthRequest.cs" />
-    <Compile Include="SimpleWifi\EapUserFactory.cs" />
-    <Compile Include="SimpleWifi\ProfileFactory.cs" />
-    <Compile Include="SimpleWifi\Wifi.cs" />
-    <Compile Include="SimpleWifi\Win32\Helpers\WlanHelpers.cs" />
-    <Compile Include="SimpleWifi\Win32\Interop\Enums.cs" />
-    <Compile Include="SimpleWifi\Win32\Interop\Exceptions.cs" />
-    <Compile Include="SimpleWifi\Win32\Interop\Interop.cs" />
-    <Compile Include="SimpleWifi\Win32\Interop\Structs.cs" />
-    <Compile Include="SimpleWifi\Win32\WlanApi.cs" />
-    <Compile Include="SimpleWifi\Win32\WlanInterface.cs" />
-    <Compile Include="SimpleWifi\Win32\WlanNotificationStructs.cs" />
     <Compile Include="WiFiNetwork.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

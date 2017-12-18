@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DevLib.Management</name>
+    </assembly>
+    <members>
+        <member name="T:DevLib.Management.WMIUtilities">
+            <summary>
+            WMI Utilities.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.WIN32_ACCOUNT">
+            <summary>
+            Field WIN32_ACCOUNT.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.MAINBOARD_SN">
+            <summary>
+            Field MAINBOARD_SN.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.BIOS_SN">
+            <summary>
+            Field BIOS_SN.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.HARDDISK_MODEL">
+            <summary>
+            Field HARDDISK_MODEL.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.HARDDISK_SN">
+            <summary>
+            Field HARDDISK_SN.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.HARDDISK_SIZE">
+            <summary>
+            Field HARDDISK_SIZE.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.MACADDRESS">
+            <summary>
+            Field MACADDRESS.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.PHYSICALMEMORY_SN">
+            <summary>
+            Field PHYSICALMEMORY_SN.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.PHYSICALMEMORY_SIZE">
+            <summary>
+            Field PHYSICALMEMORY_SIZE.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.CPU_ID">
+            <summary>
+            Field CPU_ID.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.VOLUME_SN">
+            <summary>
+            Field VOLUME_SN.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.LOGICALDISK_SN">
+            <summary>
+            Field LOGICALDISK_SN.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.GPU">
+            <summary>
+            Field GPU.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.PC_MODEL">
+            <summary>
+            Field PC_MODEL.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.PC_IDENTIFYINGNUMBER">
+            <summary>
+            Field PC_IDENTIFYINGNUMBER.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.PC_UUID">
+            <summary>
+            Field PC_UUID.
+            </summary>
+        </member>
+        <member name="F:DevLib.Management.WMIUtilities.PC_OEMSTRINGARRAY">
+            <summary>
+            Field PC_OEMSTRINGARRAY.
+            </summary>
+        </member>
+        <member name="M:DevLib.Management.WMIUtilities.Query(System.String,System.String)">
+            <summary>
+            Query a WMI class and associated property.
+            </summary>
+            <param name="wmiClass">WMI class, ignore case.</param>
+            <param name="classProperty">Associated property, ignore case.</param>
+            <returns>A string list of query result.</returns>
+        </member>
+        <member name="M:DevLib.Management.WMIUtilities.QueryWQL(System.String,System.String)">
+            <summary>
+            Query a WMI class and associated property.
+            </summary>
+            <param name="wqlString">WQL query string, ignore case.</param>
+            <param name="classProperty">Associated property, ignore case.</param>
+            <returns>A string list of query result.</returns>
+        </member>
+    </members>
+</doc>
