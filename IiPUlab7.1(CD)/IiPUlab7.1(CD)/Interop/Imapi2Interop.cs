@@ -4,6 +4,8 @@
 // 
 using System;
 using System.Collections;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
@@ -38,7 +40,7 @@ namespace IMAPI2.Interop
         FsiItemDirectory,
         FsiItemFile
     }
-    
+
     public enum IMAPI_BURN_VERIFICATION_LEVEL
     {
         IMAPI_BURN_VERIFICATION_NONE,
@@ -162,7 +164,7 @@ namespace IMAPI2.Interop
 
     public enum IMAPI_FORMAT2_RAW_CD_WRITE_ACTION
     {
-        [TypeLibVar((short) 0x40)]
+        [TypeLibVar((short)0x40)]
         IMAPI_FORMAT2_RAW_CD_WRITE_ACTION_UNKNOWN = 0,
         IMAPI_FORMAT2_RAW_CD_WRITE_ACTION_PREPARING = 1,
         IMAPI_FORMAT2_RAW_CD_WRITE_ACTION_WRITING = 2,
@@ -172,7 +174,7 @@ namespace IMAPI2.Interop
 
     public enum IMAPI_FORMAT2_TAO_WRITE_ACTION
     {
-        [TypeLibVar((short) 0x40)]
+        [TypeLibVar((short)0x40)]
         IMAPI_FORMAT2_TAO_WRITE_ACTION_UNKNOWN = 0,
         IMAPI_FORMAT2_TAO_WRITE_ACTION_PREPARING = 1,
         IMAPI_FORMAT2_TAO_WRITE_ACTION_WRITING = 2,
@@ -288,26 +290,26 @@ namespace IMAPI2.Interop
 
     #region IMAPI2 Structures
 
-    [StructLayout(LayoutKind.Sequential, Pack=4)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
     public struct _FILETIME
     {
         public uint dwLowDateTime;
         public uint dwHighDateTime;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack=8)]
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct _LARGE_INTEGER
     {
         public long QuadPart;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack=8)]
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct _ULARGE_INTEGER
     {
         public ulong QuadPart;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack=4)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
     public struct tagCONNECTDATA
     {
         [MarshalAs(UnmanagedType.IUnknown)]
@@ -317,7 +319,7 @@ namespace IMAPI2.Interop
 
 
 
-    [StructLayout(LayoutKind.Sequential, Pack=8)]
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct tagSTATSTG
     {
         [MarshalAs(UnmanagedType.LPWStr)]
@@ -341,7 +343,7 @@ namespace IMAPI2.Interop
     /// </summary>
     [ComImport]
     [Guid("2735413C-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FNonExtensible|TypeLibTypeFlags.FOleAutomation|TypeLibTypeFlags.FDispatchable)]
+    [TypeLibType(TypeLibTypeFlags.FNonExtensible | TypeLibTypeFlags.FOleAutomation | TypeLibTypeFlags.FDispatchable)]
     public interface DDiscFormat2DataEvents
     {
         // Update to current progress
@@ -351,7 +353,7 @@ namespace IMAPI2.Interop
     }
 
     [ComVisible(false)]
-    [ComEventInterface(typeof(DDiscFormat2DataEvents),typeof(DiscFormat2Data_EventProvider))]
+    [ComEventInterface(typeof(DDiscFormat2DataEvents), typeof(DiscFormat2Data_EventProvider))]
     [TypeLibType(TypeLibTypeFlags.FHidden)]
     public interface DiscFormat2Data_Event
     {
@@ -496,554 +498,6 @@ namespace IMAPI2.Interop
     public delegate void DiscFormat2Data_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
 
     #endregion // DDiscFormat2DataEvents
-
-    #region DDiscFormat2RawCDEvents
-
-    /// <summary>
-    /// CD Disc-At-Once RAW Writer Events
-    /// </summary>
-    [ComImport]
-    [TypeLibType(TypeLibTypeFlags.FNonExtensible|TypeLibTypeFlags.FOleAutomation|TypeLibTypeFlags.FDispatchable)]
-    [Guid("27354142-7F64-5B0F-8F00-5D77AFBE261E")]
-    public interface DDiscFormat2RawCDEvents
-    {
-        // Update to current progress
-        [DispId(0x200)]     // DISPID_DDISCFORMAT2RAWCDEVENTS_UPDATE 
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void Update([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
-    }
-
-    [ComEventInterface(typeof(DDiscFormat2RawCDEvents), typeof(DiscFormat2RawCD_EventProvider))]
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ComVisible(false)]
-    public interface DiscFormat2RawCD_Event
-    {
-        // Events
-        event DiscFormat2RawCD_EventHandler Update;
-    }
-
-    [ClassInterface(ClassInterfaceType.None)]
-    internal sealed class DiscFormat2RawCD_EventProvider : DiscFormat2RawCD_Event, IDisposable
-    {
-        // Fields
-        private Hashtable m_aEventSinkHelpers = new Hashtable();
-        private IConnectionPoint m_connectionPoint = null;
-
-        // Methods
-        public DiscFormat2RawCD_EventProvider(object pointContainer)
-        {
-            lock (this)
-            {
-                Guid eventsGuid = typeof(DDiscFormat2RawCDEvents).GUID;
-                IConnectionPointContainer connectionPointContainer = pointContainer as IConnectionPointContainer;
-
-                connectionPointContainer.FindConnectionPoint(ref eventsGuid, out m_connectionPoint);
-            }
-        }
-
-        public event DiscFormat2RawCD_EventHandler Update
-        {
-            add
-            {
-                lock (this)
-                {
-                    DiscFormat2RawCD_SinkHelper helper =
-                        new DiscFormat2RawCD_SinkHelper(value);
-                    int cookie;
-
-                    m_connectionPoint.Advise(helper, out cookie);
-                    helper.Cookie = cookie;
-                    m_aEventSinkHelpers.Add(helper.UpdateDelegate, helper);
-                }
-            }
-
-            remove
-            {
-                lock (this)
-                {
-                    DiscFormat2RawCD_SinkHelper helper =
-                        m_aEventSinkHelpers[value] as DiscFormat2RawCD_SinkHelper;
-                    if (helper != null)
-                    {
-                        m_connectionPoint.Unadvise(helper.Cookie);
-                        m_aEventSinkHelpers.Remove(helper.UpdateDelegate);
-                    }
-                }
-            }
-        }
-
-        ~DiscFormat2RawCD_EventProvider()
-        {
-            Cleanup();
-        }
-
-        public void Dispose()
-        {
-            Cleanup();
-            GC.SuppressFinalize(this);
-        }
-
-        private void Cleanup()
-        {
-            Monitor.Enter(this);
-            try
-            {
-                foreach (DiscFormat2RawCD_SinkHelper helper in m_aEventSinkHelpers.Values)
-                {
-                    m_connectionPoint.Unadvise(helper.Cookie);
-                }
-
-                m_aEventSinkHelpers.Clear();
-                Marshal.ReleaseComObject(m_connectionPoint);
-            }
-            catch (SynchronizationLockException)
-            {
-                return;
-            }
-            finally
-            {
-                Monitor.Exit(this);
-            }
-        }
-    }
-
-    [ClassInterface(ClassInterfaceType.None)]
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    public sealed class DiscFormat2RawCD_SinkHelper : DDiscFormat2RawCDEvents
-    {
-        // Fields
-        private int m_dwCookie;
-        private DiscFormat2RawCD_EventHandler m_UpdateDelegate;
-
-        public DiscFormat2RawCD_SinkHelper(DiscFormat2RawCD_EventHandler eventHandler)
-        {
-            if (eventHandler == null)
-                throw new ArgumentNullException("Delegate (callback function) cannot be null");
-            m_dwCookie = 0;
-            m_UpdateDelegate = eventHandler;
-        }
-
-        public void Update(object sender, object progress)
-        {
-            m_UpdateDelegate(sender, progress);
-        }
-
-        public int Cookie
-        {
-            get
-            {
-                return m_dwCookie;
-            }
-            set
-            {
-                m_dwCookie = value;
-            }
-        }
-
-        public DiscFormat2RawCD_EventHandler UpdateDelegate
-        {
-            get
-            {
-                return m_UpdateDelegate;
-            }
-            set
-            {
-                m_UpdateDelegate = value;
-            }
-        }
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DiscFormat2RawCD_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
-
-    #endregion  // DDiscFormat2RawCDEvents
-
-    #region DDiscFormat2TrackAtOnceEvents
-    /// <summary>
-    /// CD Track-at-Once Audio Writer Events
-    /// </summary>
-    [ComImport]
-    [Guid("2735413F-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FNonExtensible|TypeLibTypeFlags.FOleAutomation|TypeLibTypeFlags.FDispatchable)]
-    public interface DDiscFormat2TrackAtOnceEvents
-    {
-        // Update to current progress
-        [DispId(0x200)]     // DISPID_DDISCFORMAT2TAOEVENTS_UPDATE
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void Update([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
-    }
-
-    [ComVisible(false)]
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ComEventInterface(typeof(DDiscFormat2TrackAtOnceEvents), typeof(DiscFormat2TrackAtOnce_EventProvider))]
-    public interface DiscFormat2TrackAtOnce_Event
-    {
-        // Events
-        event DiscFormat2TrackAtOnce_EventHandler Update;
-    }
-
-    [ClassInterface(ClassInterfaceType.None)]
-    internal sealed class DiscFormat2TrackAtOnce_EventProvider : DiscFormat2TrackAtOnce_Event, IDisposable
-    {
-        // Fields
-        private Hashtable m_aEventSinkHelpers = new Hashtable();
-        private IConnectionPoint m_connectionPoint = null;
-
-        // Methods
-        public DiscFormat2TrackAtOnce_EventProvider(object pointContainer)
-        {
-            lock (this)
-            {
-                Guid eventsGuid = typeof(DDiscFormat2TrackAtOnceEvents).GUID;
-                IConnectionPointContainer connectionPointContainer = pointContainer as IConnectionPointContainer;
-
-                connectionPointContainer.FindConnectionPoint(ref eventsGuid, out m_connectionPoint);
-            }
-        }
-
-        public event DiscFormat2TrackAtOnce_EventHandler Update
-        {
-            add
-            {
-                lock (this)
-                {
-                    DiscFormat2TrackAtOnce_SinkHelper helper =
-                        new DiscFormat2TrackAtOnce_SinkHelper(value);
-                    int cookie;
-
-                    m_connectionPoint.Advise(helper, out cookie);
-                    helper.Cookie = cookie;
-                    m_aEventSinkHelpers.Add(helper.UpdateDelegate, helper);
-                }
-            }
-
-            remove
-            {
-                lock (this)
-                {
-                    DiscFormat2TrackAtOnce_SinkHelper helper =
-                        m_aEventSinkHelpers[value] as DiscFormat2TrackAtOnce_SinkHelper;
-                    if (helper != null)
-                    {
-                        m_connectionPoint.Unadvise(helper.Cookie);
-                        m_aEventSinkHelpers.Remove(helper.UpdateDelegate);
-                    }
-                }
-            }
-        }
-
-        ~DiscFormat2TrackAtOnce_EventProvider()
-        {
-            Cleanup();
-        }
-
-        public void Dispose()
-        {
-            Cleanup();
-            GC.SuppressFinalize(this);
-        }
-
-        private void Cleanup()
-        {
-            Monitor.Enter(this);
-            try
-            {
-                foreach (DiscFormat2TrackAtOnce_SinkHelper helper in m_aEventSinkHelpers.Values)
-                {
-                    m_connectionPoint.Unadvise(helper.Cookie);
-                }
-
-                m_aEventSinkHelpers.Clear();
-                Marshal.ReleaseComObject(m_connectionPoint);
-            }
-            catch (SynchronizationLockException)
-            {
-                return;
-            }
-            finally
-            {
-                Monitor.Exit(this);
-            }
-        }
-    }
-
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ClassInterface(ClassInterfaceType.None)]
-    public sealed class DiscFormat2TrackAtOnce_SinkHelper : DDiscFormat2TrackAtOnceEvents
-    {
-        // Fields
-        private int m_dwCookie;
-        private DiscFormat2TrackAtOnce_EventHandler m_UpdateDelegate;
-
-        public DiscFormat2TrackAtOnce_SinkHelper(DiscFormat2TrackAtOnce_EventHandler eventHandler)
-        {
-            if (eventHandler == null)
-                throw new ArgumentNullException("Delegate (callback function) cannot be null");
-            m_dwCookie = 0;
-            m_UpdateDelegate = eventHandler;
-        }
-
-        public void Update(object sender, object progress)
-        {
-            m_UpdateDelegate(sender, progress);
-        }
-
-        public int Cookie
-        {
-            get
-            {
-                return m_dwCookie;
-            }
-            set
-            {
-                m_dwCookie = value;
-            }
-        }
-
-        public DiscFormat2TrackAtOnce_EventHandler UpdateDelegate
-        {
-            get
-            {
-                return m_UpdateDelegate;
-            }
-            set
-            {
-                m_UpdateDelegate = value;
-            }
-        }
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DiscFormat2TrackAtOnce_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
-
-    #endregion  // DDiscFormat2TrackAtOnceEvents
-
-    #region DDiscMaster2Events
-    /// <summary>
-    /// Provides notification of the arrival/removal of CD/DVD (optical) devices.
-    /// </summary>
-    [ComImport]
-    [Guid("27354131-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FNonExtensible|TypeLibTypeFlags.FOleAutomation|TypeLibTypeFlags.FDispatchable)]
-    public interface DDiscMaster2Events
-    {
-        // A device was added to the system
-        [DispId(0x100)]     // DISPID_DDISCMASTER2EVENTS_DEVICEADDED
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void NotifyDeviceAdded([In, MarshalAs(UnmanagedType.IDispatch)] object sender,  string uniqueId);
-
-        // A device was removed from the system
-        [DispId(0x101)]     // DISPID_DDISCMASTER2EVENTS_DEVICEREMOVED
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void NotifyDeviceRemoved([In, MarshalAs(UnmanagedType.IDispatch)] object sender,  string uniqueId);
-    }
-
-
-    [ComVisible(false)]
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ComEventInterface(typeof(DDiscMaster2Events), typeof(DiscMaster2_EventProvider))]
-    public interface DiscMaster2_Event
-    {
-        // Events
-        event DiscMaster2_NotifyDeviceAddedEventHandler NotifyDeviceAdded;
-        event DiscMaster2_NotifyDeviceRemovedEventHandler NotifyDeviceRemoved;
-    }
-
-    [ClassInterface(ClassInterfaceType.None)]
-    internal sealed class DiscMaster2_EventProvider : DiscMaster2_Event, IDisposable
-    {
-        // Fields
-        private Hashtable m_aEventSinkHelpers = new Hashtable();
-        private IConnectionPoint m_connectionPoint = null;
-
-        // Methods
-        public DiscMaster2_EventProvider(object pointContainer)
-        {
-            lock (this)
-            {
-                Guid eventsGuid = typeof(DDiscMaster2Events).GUID;
-                IConnectionPointContainer connectionPointContainer = pointContainer as IConnectionPointContainer;
-
-                connectionPointContainer.FindConnectionPoint(ref eventsGuid, out m_connectionPoint);
-            }
-        }
-
-        public event DiscMaster2_NotifyDeviceAddedEventHandler NotifyDeviceAdded
-        {
-            add
-            {
-                lock (this)
-                {
-                    DiscMaster2_SinkHelper helper =
-                        new DiscMaster2_SinkHelper(value);
-                    int cookie;
-
-                    m_connectionPoint.Advise(helper, out cookie);
-                    helper.Cookie = cookie;
-                    m_aEventSinkHelpers.Add(helper.NotifyDeviceAddedDelegate, helper);
-                }
-            }
-
-            remove
-            {
-                lock (this)
-                {
-                    DiscMaster2_SinkHelper helper =
-                        m_aEventSinkHelpers[value] as DiscMaster2_SinkHelper;
-                    if (helper != null)
-                    {
-                        m_connectionPoint.Unadvise(helper.Cookie);
-                        m_aEventSinkHelpers.Remove(helper.NotifyDeviceAddedDelegate);
-                    }
-                }
-            }
-        }
-
-        public event DiscMaster2_NotifyDeviceRemovedEventHandler NotifyDeviceRemoved
-        {
-            add
-            {
-                lock (this)
-                {
-                    DiscMaster2_SinkHelper helper =
-                        new DiscMaster2_SinkHelper(value);
-                    int cookie;
-
-                    m_connectionPoint.Advise(helper, out cookie);
-                    helper.Cookie = cookie;
-                    m_aEventSinkHelpers.Add(helper.NotifyDeviceRemovedDelegate, helper);
-                }
-            }
-
-            remove
-            {
-                lock (this)
-                {
-                    DiscMaster2_SinkHelper helper =
-                        m_aEventSinkHelpers[value] as DiscMaster2_SinkHelper;
-                    if (helper != null)
-                    {
-                        m_connectionPoint.Unadvise(helper.Cookie);
-                        m_aEventSinkHelpers.Remove(helper.NotifyDeviceRemovedDelegate);
-                    }
-                }
-            }
-        }
-
-        ~DiscMaster2_EventProvider()
-        {
-            Cleanup();
-        }
-
-        public void Dispose()
-        {
-            Cleanup();
-            GC.SuppressFinalize(this);
-        }
-
-        private void Cleanup()
-        {
-            Monitor.Enter(this);
-            try
-            {
-                foreach (DiscMaster2_SinkHelper helper in m_aEventSinkHelpers.Values)
-                {
-                    m_connectionPoint.Unadvise(helper.Cookie);
-                }
-
-                m_aEventSinkHelpers.Clear();
-                Marshal.ReleaseComObject(m_connectionPoint);
-            }
-            catch (SynchronizationLockException)
-            {
-                return;
-            }
-            finally
-            {
-                Monitor.Exit(this);
-            }
-        }
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DiscMaster2_NotifyDeviceAddedEventHandler([In, MarshalAs(UnmanagedType.IDispatch)]object sender,  string uniqueId);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DiscMaster2_NotifyDeviceRemovedEventHandler([In, MarshalAs(UnmanagedType.IDispatch)]object sender,  string uniqueId);
-
-    [ClassInterface(ClassInterfaceType.None)]
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    public sealed class DiscMaster2_SinkHelper : DDiscMaster2Events
-    {
-        // Fields
-        private int m_dwCookie;
-        private DiscMaster2_NotifyDeviceAddedEventHandler m_AddedDelegate = null;
-        private DiscMaster2_NotifyDeviceRemovedEventHandler m_RemovedDelegate = null;
-
-        public DiscMaster2_SinkHelper(DiscMaster2_NotifyDeviceAddedEventHandler eventHandler)
-        {
-            if (eventHandler == null)
-                throw new ArgumentNullException("Delegate (callback function) cannot be null");
-            m_dwCookie = 0;
-            m_AddedDelegate = eventHandler;
-        }
-
-        public DiscMaster2_SinkHelper(DiscMaster2_NotifyDeviceRemovedEventHandler eventHandler)
-        {
-            if (eventHandler == null)
-                throw new ArgumentNullException("Delegate (callback function) cannot be null");
-            m_dwCookie = 0;
-            m_RemovedDelegate = eventHandler;
-        }
-
-        public void NotifyDeviceAdded(object sender, string uniqueId)
-        {
-            m_AddedDelegate(sender, uniqueId);
-        }
-
-        public void NotifyDeviceRemoved(object sender, string uniqueId)
-        {
-            m_RemovedDelegate(sender, uniqueId);
-        }
-
-        public int Cookie
-        {
-            get
-            {
-                return m_dwCookie;
-            }
-            set
-            {
-                m_dwCookie = value;
-            }
-        }
-
-        public DiscMaster2_NotifyDeviceAddedEventHandler NotifyDeviceAddedDelegate
-        {
-            get
-            {
-                return m_AddedDelegate;
-            }
-            set
-            {
-                m_AddedDelegate = value;
-            }
-        }
-
-        public DiscMaster2_NotifyDeviceRemovedEventHandler NotifyDeviceRemovedDelegate
-        {
-            get
-            {
-                return m_RemovedDelegate;
-            }
-            set
-            {
-                m_RemovedDelegate = value;
-            }
-        }
-    }
-
-    #endregion DDiscMaster2Events
 
     #region DFileSystemImageEvents
     /// <summary>
@@ -1202,329 +656,6 @@ namespace IMAPI2.Interop
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate void DFileSystemImage_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)]object sender, string currentFile, int copiedSectors, int totalSectors);
     #endregion  // DFileSystemImageEvents
-
-    #region DFileSystemImageImportEvents
-    //
-    // DFileSystemImageImportEvents
-    //
-    [ComImport]
-    [Guid("D25C30F9-4087-4366-9E24-E55BE286424B")]
-    [TypeLibType(TypeLibTypeFlags.FNonExtensible | TypeLibTypeFlags.FOleAutomation | TypeLibTypeFlags.FDispatchable)]
-    public interface DFileSystemImageImportEvents
-    {
-        [DispId(0x101)]     // DISPID_DFILESYSTEMIMAGEIMPORTEVENTS_UPDATEIMPORT 
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void UpdateImport([In, MarshalAs(UnmanagedType.IDispatch)] object sender, FsiFileSystems fileSystem,
-                string currentItem, int importedDirectoryItems, int totalDirectoryItems, int importedFileItems, int totalFileItems);
-    }
-
-    [ComVisible(false)]
-    [ComEventInterface(typeof(DFileSystemImageImportEvents), typeof(DFileSystemImageImport_EventProvider))]
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    public interface DFileSystemImageImport_Event
-    {
-        // Events
-        event DFileSystemImageImport_EventHandler UpdateImport;
-    }
-
-
-    [ClassInterface(ClassInterfaceType.None)]
-    internal sealed class DFileSystemImageImport_EventProvider : DFileSystemImageImport_Event, IDisposable
-    {
-        // Fields
-        private Hashtable m_aEventSinkHelpers = new Hashtable();
-        private IConnectionPoint m_connectionPoint = null;
-
-
-        // Methods
-        public DFileSystemImageImport_EventProvider(object pointContainer)
-        {
-            lock (this)
-            {
-                Guid eventsGuid = typeof(DFileSystemImageImportEvents).GUID;
-                IConnectionPointContainer connectionPointContainer = pointContainer as IConnectionPointContainer;
-
-                connectionPointContainer.FindConnectionPoint(ref eventsGuid, out m_connectionPoint);
-            }
-        }
-
-        public event DFileSystemImageImport_EventHandler UpdateImport
-        {
-            add
-            {
-                lock (this)
-                {
-                    DFileSystemImageImport_SinkHelper helper = new DFileSystemImageImport_SinkHelper(value);
-                    int cookie;
-
-                    m_connectionPoint.Advise(helper, out cookie);
-                    helper.Cookie = cookie;
-                    m_aEventSinkHelpers.Add(helper.UpdateDelegate, helper);
-                }
-            }
-
-            remove
-            {
-                lock (this)
-                {
-                    DFileSystemImageImport_SinkHelper helper =
-                        m_aEventSinkHelpers[value] as DFileSystemImageImport_SinkHelper;
-                    if (helper != null)
-                    {
-                        m_connectionPoint.Unadvise(helper.Cookie);
-                        m_aEventSinkHelpers.Remove(helper.UpdateDelegate);
-                    }
-                }
-            }
-        }
-
-        ~DFileSystemImageImport_EventProvider()
-        {
-            Cleanup();
-        }
-
-        public void Dispose()
-        {
-            Cleanup();
-            GC.SuppressFinalize(this);
-        }
-
-        private void Cleanup()
-        {
-            Monitor.Enter(this);
-            try
-            {
-                foreach (DFileSystemImageImport_SinkHelper helper in m_aEventSinkHelpers.Values)
-                {
-                    m_connectionPoint.Unadvise(helper.Cookie);
-                }
-
-                m_aEventSinkHelpers.Clear();
-                Marshal.ReleaseComObject(m_connectionPoint);
-            }
-            catch (SynchronizationLockException)
-            {
-                return;
-            }
-            finally
-            {
-                Monitor.Exit(this);
-            }
-        }
-    }
-
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ClassInterface(ClassInterfaceType.None)]
-    public sealed class DFileSystemImageImport_SinkHelper : DFileSystemImageImportEvents
-    {
-        // Fields
-        private int m_dwCookie;
-        private DFileSystemImageImport_EventHandler m_UpdateDelegate;
-
-        public DFileSystemImageImport_SinkHelper(DFileSystemImageImport_EventHandler eventHandler)
-        {
-            if (eventHandler == null)
-                throw new ArgumentNullException("Delegate (callback function) cannot be null");
-            m_dwCookie = 0;
-            m_UpdateDelegate = eventHandler;
-        }
-
-        public void UpdateImport(object sender, FsiFileSystems fileSystems, string currentItem,
-            int importedDirectoryItems, int totalDirectoryItems, int importedFileItems, int totalFileItems)
-        {
-            m_UpdateDelegate(sender, fileSystems, currentItem, importedDirectoryItems, totalDirectoryItems,
-                importedFileItems, totalFileItems);
-        }
-
-        public int Cookie
-        {
-            get
-            {
-                return m_dwCookie;
-            }
-            set
-            {
-                m_dwCookie = value;
-            }
-        }
-
-        public DFileSystemImageImport_EventHandler UpdateDelegate
-        {
-            get
-            {
-                return m_UpdateDelegate;
-            }
-            set
-            {
-                m_UpdateDelegate = value;
-            }
-        }
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DFileSystemImageImport_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)] object sender,
-        FsiFileSystems fileSystem, string currentItem, int importedDirectoryItems, int totalDirectoryItems, int importedFileItems, int totalFileItems);
-
-    #endregion  // DFileSystemImageImportEvents
-
-    #region DWriteEngine2Events
-    /// <summary>
-    /// Provides notification of the progress of the WriteEngine2 writing.
-    /// </summary>
-    [ComImport]
-    [TypeLibType(TypeLibTypeFlags.FNonExtensible|TypeLibTypeFlags.FOleAutomation|TypeLibTypeFlags.FDispatchable)]
-    [Guid("27354137-7F64-5B0F-8F00-5D77AFBE261E")]
-    public interface DWriteEngine2Events
-    {
-        // Update to current progress
-        [DispId(0x100)]     // DISPID_DWRITEENGINE2EVENTS_UPDATE 
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void Update([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
-    }
-
-    [ComVisible(false)]
-    [ComEventInterface(typeof(DWriteEngine2Events), typeof(DWriteEngine2_EventProvider))]
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    public interface DWriteEngine2_Event
-    {
-        // Events
-        event DWriteEngine2_EventHandler Update;
-    }
-
-    [ClassInterface(ClassInterfaceType.None)]
-    internal sealed class DWriteEngine2_EventProvider : DWriteEngine2_Event, IDisposable
-    {
-        // Fields
-        private Hashtable m_aEventSinkHelpers = new Hashtable();
-        private IConnectionPoint m_connectionPoint = null;
-
-        // Methods
-        public DWriteEngine2_EventProvider(object pointContainer)
-        {
-            lock (this)
-            {
-                Guid eventsGuid = typeof(DWriteEngine2Events).GUID;
-                IConnectionPointContainer connectionPointContainer = pointContainer as IConnectionPointContainer;
-
-                connectionPointContainer.FindConnectionPoint(ref eventsGuid, out m_connectionPoint);
-            }
-        }
-
-        public event DWriteEngine2_EventHandler Update
-        {
-            add
-            {
-                lock (this)
-                {
-                    DWriteEngine2_SinkHelper helper =
-                        new DWriteEngine2_SinkHelper(value);
-                    int cookie;
-
-                    m_connectionPoint.Advise(helper, out cookie);
-                    helper.Cookie = cookie;
-                    m_aEventSinkHelpers.Add(helper.UpdateDelegate, helper);
-                }
-            }
-
-            remove
-            {
-                lock (this)
-                {
-                    DWriteEngine2_SinkHelper helper =
-                        m_aEventSinkHelpers[value] as DWriteEngine2_SinkHelper;
-                    if (helper != null)
-                    {
-                        m_connectionPoint.Unadvise(helper.Cookie);
-                        m_aEventSinkHelpers.Remove(helper.UpdateDelegate);
-                    }
-                }
-            }
-        }
-
-        ~DWriteEngine2_EventProvider()
-        {
-            Cleanup();
-        }
-
-        public void Dispose()
-        {
-            Cleanup();
-            GC.SuppressFinalize(this);
-        }
-
-        private void Cleanup()
-        {
-            Monitor.Enter(this);
-            try
-            {
-                foreach (DWriteEngine2_SinkHelper helper in m_aEventSinkHelpers.Values)
-                {
-                    m_connectionPoint.Unadvise(helper.Cookie);
-                }
-
-                m_aEventSinkHelpers.Clear();
-                Marshal.ReleaseComObject(m_connectionPoint);
-            }
-            catch (SynchronizationLockException)
-            {
-                return;
-            }
-            finally
-            {
-                Monitor.Exit(this);
-            }
-        }
-    }
-
-    [TypeLibType(TypeLibTypeFlags.FHidden)]
-    [ClassInterface(ClassInterfaceType.None)]
-    public sealed class DWriteEngine2_SinkHelper : DWriteEngine2Events
-    {
-        // Fields
-        private int m_dwCookie;
-        private DWriteEngine2_EventHandler m_UpdateDelegate;
-
-        public DWriteEngine2_SinkHelper(DWriteEngine2_EventHandler eventHandler)
-        {
-            if (eventHandler == null)
-                throw new ArgumentNullException("Delegate (callback function) cannot be null");
-            m_dwCookie = 0;
-            m_UpdateDelegate = eventHandler;
-        }
-
-        public void Update(object sender, object progress)
-        {
-            m_UpdateDelegate(sender, progress);
-        }
-
-        public int Cookie
-        {
-            get
-            {
-                return m_dwCookie;
-            }
-            set
-            {
-                m_dwCookie = value;
-            }
-        }
-
-        public DWriteEngine2_EventHandler UpdateDelegate
-        {
-            get
-            {
-                return m_UpdateDelegate;
-            }
-            set
-            {
-                m_UpdateDelegate = value;
-            }
-        }
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate void DWriteEngine2_EventHandler([In, MarshalAs(UnmanagedType.IDispatch)] object sender, [In, MarshalAs(UnmanagedType.IDispatch)] object progress);
-    #endregion // DWriteEngine2Events
 
     #region Interfaces
 
@@ -1801,414 +932,6 @@ namespace IMAPI2.Interop
         IMAPI_FORMAT2_DATA_WRITE_ACTION CurrentAction { get; }
     }
 
-    [ComImport, Guid("27354156-8F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IDiscFormat2Erase
-    {
-        //
-        // IDiscFormat2
-        //
-
-        // Determines if the recorder object supports the given format
-        [DispId(0x800)]
-        bool IsRecorderSupported(IDiscRecorder2 Recorder);
-
-        // Determines if the current media in a supported recorder object supports the given format
-        [DispId(0x801)]
-        bool IsCurrentMediaSupported(IDiscRecorder2 Recorder);
-
-        // Determines if the current media is reported as physically blank by the drive
-        [DispId(0x700)]
-        bool MediaPhysicallyBlank { get; }
-
-        // Attempts to determine if the media is blank using heuristics (mainly for DVD+RW and DVD-RAM media)
-        [DispId(0x701)]
-        bool MediaHeuristicallyBlank { get; }
-
-        // Supported media types
-        [DispId(0x702)]
-        object[] SupportedMediaTypes { get; }
-
-        //
-        // IDiscFormat2Erase
-        //
-
-        // Sets the recorder object to use for an erase operation
-        [DispId(0x100)]
-        IDiscRecorder2 Recorder { set; get; }
-
-        // 
-        [DispId(0x101)]
-        bool FullErase { set; get; }
-
-        // Get the current physical media type
-        [DispId(0x102)]
-        IMAPI_MEDIA_PHYSICAL_TYPE CurrentPhysicalMediaType { get; }
-
-        // The friendly name of the client (used to determine recorder reservation conflicts)
-        [DispId(0x103)]
-        string ClientName { set; get; }
-
-        // Erases the media in the active disc recorder
-        [DispId(0x201)]
-        void EraseMedia();
-    }
-
-
-    /// <summary>
-    /// CD Disc-At-Once RAW Writer
-    /// </summary>
-    [ComImport, Guid("27354155-8F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IDiscFormat2RawCD
-    {
-        //
-        // IDiscFormat2
-        //
-
-        // Determines if the recorder object supports the given format
-        [DispId(0x800)]
-        bool IsRecorderSupported(IDiscRecorder2 Recorder);
-
-        // Determines if the current media in a supported recorder object supports the given format
-        [DispId(0x801)]
-        bool IsCurrentMediaSupported(IDiscRecorder2 Recorder);
-
-        // Determines if the current media is reported as physically blank by the drive
-        [DispId(0x700)]
-        bool MediaPhysicallyBlank { get; }
-
-        // Attempts to determine if the media is blank using heuristics (mainly for DVD+RW and DVD-RAM media)
-        [DispId(0x701)]
-        bool MediaHeuristicallyBlank { get; }
-
-        // Supported media types
-        [DispId(0x702)]
-        object[] SupportedMediaTypes { get; }
-
-        //
-        // IDiscFormat2RawCD
-        //
-
-        // Locks the current media for use by this writer
-        [DispId(0x200)]
-        void PrepareMedia();
-
-        // Writes a RAW image that starts at 95:00:00 (MSF) to the currently inserted blank CD media
-        [DispId(0x201)]
-        void WriteMedia(IStream data);
-
-        // Writes a RAW image to the currently inserted blank CD media.  A stream starting at 95:00:00
-        // (-5 minutes) would use 5*60*75 + 150 sectors pregap == 22,650 for the number of sectors
-        [DispId(0x202)]
-        void WriteMedia2(IStream data, int streamLeadInSectors);
-
-        // Cancels the current write.
-        [DispId(0x203)]
-        void CancelWrite();
-
-        // Finishes use of the locked media.
-        [DispId(0x204)]
-        void ReleaseMedia();
-
-        // Sets the write speed (in sectors per second) of the attached disc recorder
-        [DispId(0x205)]
-        void SetWriteSpeed(int RequestedSectorsPerSecond, bool RotationTypeIsPureCAV);
-
-        // The disc recorder to use
-        [DispId(0x100)]
-        IDiscRecorder2 Recorder { set; get; }
-
-        // Buffer Underrun Free recording should be disabled
-        [DispId(0x102)]
-        bool BufferUnderrunFreeDisabled { set; get; }
-
-        // The first sector of the next session.  May be negative for blank media
-        [DispId(0x103)]
-        int StartOfNextSession { get; }
-
-        // The last possible start for the leadout area.  Can be used to 
-        // calculate available space on media
-        [DispId(260)]
-        int LastPossibleStartOfLeadout { get; }
-
-        // Get the current physical media type
-        [DispId(0x105)]
-        IMAPI_MEDIA_PHYSICAL_TYPE CurrentPhysicalMediaType { get; }
-
-        // Supported data sector types for the current recorder
-        [DispId(0x108)]
-        object[] SupportedSectorTypes { get; }
-
-        // Requested data sector to use during write of the stream
-        [DispId(0x109)]
-        IMAPI_FORMAT2_RAW_CD_DATA_SECTOR_TYPE RequestedSectorType { set; get; }
-
-        // The friendly name of the client (used to determine recorder reservation conflicts).
-        [DispId(0x10a)]
-        string ClientName { set; get; }
-
-        // The last requested write speed
-        [DispId(0x10b)]
-        int RequestedWriteSpeed { get; }
-
-        // The last requested rotation type.
-        [DispId(0x10c)]
-        bool RequestedRotationTypeIsPureCAV { get; }
-
-        // The drive's current write speed.
-        [DispId(0x10d)]
-        int CurrentWriteSpeed { get; }
-
-        // The drive's current rotation type
-        [DispId(270)]
-        bool CurrentRotationTypeIsPureCAV { get; }
-
-        // Gets an array of the write speeds supported for the attached disc 
-        // recorder and current media
-        [DispId(0x10f)]
-        object[] SupportedWriteSpeeds { get; }
-
-        // Gets an array of the detailed write configurations supported for the 
-        // attached disc recorder and current media
-        [DispId(0x110)]
-        object[] SupportedWriteSpeedDescriptors { get; }
-    }
-
-    /// <summary>
-    /// CD Disc-At-Once RAW Writer Event Arguments
-    /// </summary>
-    [ComImport, Guid("27354143-7F64-5B0F-8F00-5D77AFBE261E"), TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IDiscFormat2RawCDEventArgs
-    {
-        //
-        // IWriteEngine2EventArgs
-        //
-
-        // The starting logical block address for the current write operation.
-        [DispId(0x100)]
-        int StartLba { get; }
-
-        // The number of sectors being written for the current write operation.
-        [DispId(0x101)]
-        int SectorCount { get; }
-
-        // The last logical block address of data read for the current write operation.
-        [DispId(0x102)]
-        int LastReadLba { get; }
-
-        // The last logical block address of data written for the current write operation
-        [DispId(0x103)]
-        int LastWrittenLba { get; }
-
-        // The total bytes available in the system's cache buffer
-        [DispId(0x106)]
-        int TotalSystemBuffer { get; }
-
-        // The used bytes in the system's cache buffer
-        [DispId(0x107)]
-        int UsedSystemBuffer { get; }
-
-        // The free bytes in the system's cache buffer
-        [DispId(0x108)]
-        int FreeSystemBuffer { get; }
-
-        //
-        // IDiscFormat2RawCDEventArgs
-        //
-
-        // The current write action
-        [DispId(0x301)]
-        IMAPI_FORMAT2_RAW_CD_WRITE_ACTION CurrentAction { get; }
-
-        // The elapsed time for the current track write or media finishing operation
-        [DispId(770)]
-        int ElapsedTime { get; }
-
-        // The estimated time remaining for the current track write or media finishing operation
-        [DispId(0x303)]
-        int RemainingTime { get; }
-    }
-
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    [ComImport]
-    [Guid("27354154-8F64-5B0F-8F00-5D77AFBE261E")]
-    public interface IDiscFormat2TrackAtOnce
-    {
-        //
-        // IDiscFormat2
-        //
-
-        // Determines if the recorder object supports the given format
-        [DispId(0x800)]
-        bool IsRecorderSupported(IDiscRecorder2 Recorder);
-
-        // Determines if the current media in a supported recorder object supports the given format
-        [DispId(0x801)]
-        bool IsCurrentMediaSupported(IDiscRecorder2 Recorder);
-
-        // Determines if the current media is reported as physically blank by the drive
-        [DispId(0x700)]
-        bool MediaPhysicallyBlank { get; }
-
-        // Attempts to determine if the media is blank using heuristics (mainly for DVD+RW and DVD-RAM media)
-        [DispId(0x701)]
-        bool MediaHeuristicallyBlank { get; }
-
-        // Supported media types
-        [DispId(0x702)]
-        object[] SupportedMediaTypes { get; }
-
-        //
-        // IDiscFormat2TrackAtOnce
-        //
-
-        // Locks the current media for use by this writer.
-        [DispId(0x200)]
-        void PrepareMedia();
-
-        // Immediately writes a new audio track to the locked media
-        [DispId(0x201)]
-        void AddAudioTrack(IStream data);
-
-        // Cancels the current addition of a track
-        [DispId(0x202)]
-        void CancelAddTrack();
-
-        // Finishes use of the locked media
-        [DispId(0x203)]
-        void ReleaseMedia();
-
-        // Sets the write speed (in sectors per second) of the attached disc recorder
-        [DispId(0x204)]
-        void SetWriteSpeed(int RequestedSectorsPerSecond, bool RotationTypeIsPureCAV);
-
-        // The disc recorder to use
-        [DispId(0x100)]
-        IDiscRecorder2 Recorder { set; get; }
-
-        // Buffer Underrun Free recording should be disabled
-        [DispId(0x102)]
-        bool BufferUnderrunFreeDisabled { set; get; }
-
-        // Number of tracks already written to the locked media
-        [DispId(0x103)]
-        int NumberOfExistingTracks { get; }
-
-        // Total sectors available on locked media if writing one continuous audio track
-        [DispId(260)]
-        int TotalSectorsOnMedia { get; }
-
-        // Number of sectors available for adding a new track to the media
-        [DispId(0x105)]
-        int FreeSectorsOnMedia { get; }
-
-        // Number of sectors used on the locked media, including overhead (space between tracks)
-        [DispId(0x106)]
-        int UsedSectorsOnMedia { get; }
-
-        // Set the media to be left 'open' after writing, to allow multisession discs
-        [DispId(0x107)]
-        bool DoNotFinalizeMedia { set; get; }
-
-        // Get the current physical media type
-        [DispId(0x10a)]
-        object[] ExpectedTableOfContents { get; }
-
-        // Get the current physical media type
-        [DispId(0x10b)]
-        IMAPI_MEDIA_PHYSICAL_TYPE CurrentPhysicalMediaType { get; }
-
-        // The friendly name of the client (used to determine recorder reservation conflicts)
-        [DispId(270)]
-        string ClientName { set; get; }
-
-        // The last requested write speed
-        [DispId(0x10f)]
-        int RequestedWriteSpeed { get; }
-
-        // The last requested rotation type.
-        [DispId(0x110)]
-        bool RequestedRotationTypeIsPureCAV { get; }
-
-        // The drive's current write speed.
-        [DispId(0x111)]
-        int CurrentWriteSpeed { get; }
-
-        // The drive's current rotation type.
-        [DispId(0x112)]
-        bool CurrentRotationTypeIsPureCAV { get; }
-
-        // Gets an array of the write speeds supported for the attached disc recorder and current media
-        [DispId(0x113)]
-        object[] SupportedWriteSpeeds { get; }
-
-        // Gets an array of the detailed write configurations supported for the attached disc recorder and current media
-        [DispId(0x114)]
-        object[] SupportedWriteSpeedDescriptors { get; }
-    }
-
-
-    /// <summary>
-    /// CD Track-at-once Audio Writer Event Arguments
-    /// </summary>
-    [ComImport]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    [Guid("27354140-7F64-5B0F-8F00-5D77AFBE261E")]
-    public interface IDiscFormat2TrackAtOnceEventArgs
-    {
-        //
-        // IWriteEngine2EventArgs
-        //
-
-        // The starting logical block address for the current write operation.
-        [DispId(0x100)]
-        int StartLba { get; }
-
-        // The number of sectors being written for the current write operation.
-        [DispId(0x101)]
-        int SectorCount { get; }
-
-        // The last logical block address of data read for the current write operation.
-        [DispId(0x102)]
-        int LastReadLba { get; }
-
-        // The last logical block address of data written for the current write operation
-        [DispId(0x103)]
-        int LastWrittenLba { get; }
-
-        // The total bytes available in the system's cache buffer
-        [DispId(0x106)]
-        int TotalSystemBuffer { get; }
-
-        // The used bytes in the system's cache buffer
-        [DispId(0x107)]
-        int UsedSystemBuffer { get; }
-
-        // The free bytes in the system's cache buffer
-        [DispId(0x108)]
-        int FreeSystemBuffer { get; }
-
-        //
-        // IDiscFormat2TrackAtOnceEventArgs
-        //
-
-        // The total elapsed time for the current write operation
-        [DispId(0x300)]
-        int CurrentTrackNumber { get; }
-
-        // The current write action
-        [DispId(0x301)]
-        IMAPI_FORMAT2_TAO_WRITE_ACTION CurrentAction { get; }
-
-        // The elapsed time for the current track write or media finishing operation
-        [DispId(770)]
-        int ElapsedTime { get; }
-
-        // The estimated time remaining for the current track write or media finishing operation
-        [DispId(0x303)]
-        int RemainingTime { get; }
-    }
 
     /// <summary>
     /// IDiscMaster2 is used to get an enumerator for the set of CD/DVD (optical) devices on the system
@@ -2341,33 +1064,33 @@ namespace IMAPI2.Interop
         //
         void SendCommandNoData(
             [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 1)]
-            byte[] Cdb, 
+            byte[] Cdb,
             uint CdbSize,
-            [MarshalAs(UnmanagedType.LPArray, SizeConst = 18)] 
+            [MarshalAs(UnmanagedType.LPArray, SizeConst = 18)]
             byte[] SenseBuffer,
             uint Timeout);
 
         // Send a command to the device that requires data sent to the device
         void SendCommandSendDataToDevice(
             [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 1)]
-            byte[] Cdb, 
+            byte[] Cdb,
             uint CdbSize,
-            [MarshalAs(UnmanagedType.LPArray, SizeConst = 18)] 
-            byte[] SenseBuffer, 
+            [MarshalAs(UnmanagedType.LPArray, SizeConst = 18)]
+            byte[] SenseBuffer,
             uint Timeout,
-            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 5)] 
-            byte[] Buffer, 
+            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 5)]
+            byte[] Buffer,
             uint BufferSize);
 
         // Send a command to the device that requests data from the device
         void SendCommandGetDataFromDevice(
-            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 1)] 
+            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 1)]
             byte[] Cdb,
             uint CdbSize,
-            [MarshalAs(UnmanagedType.LPArray, SizeConst = 18)] 
-            byte[] SenseBuffer, 
+            [MarshalAs(UnmanagedType.LPArray, SizeConst = 18)]
+            byte[] SenseBuffer,
             uint Timeout,
-            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 5)] 
+            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1, SizeParamIndex = 5)]
             byte[] Buffer,
             uint BufferSize,
             out uint BufferFetched);
@@ -2632,367 +1355,6 @@ namespace IMAPI2.Interop
     }
 
     /// <summary>
-    /// File system image (rev.2)
-    /// </summary>
-    [ComImport]
-    [Guid("D7644B2C-1537-4767-B62F-F1387B02DDFD")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IFileSystemImage2
-    {
-        //
-        // IFileSystemImage
-        //
-
-        // Root directory item
-        [DispId(0)]
-        IFsiDirectoryItem Root { get; }
-
-        // Disc start block for the image
-        [DispId(1)]
-        int SessionStartBlock { get; set; }
-
-        // Maximum number of blocks available for the image
-        [DispId(2)]
-        int FreeMediaBlocks { get; set; }
-
-        // Set maximum number of blocks available based on the recorder 
-        // supported discs. 0 for unknown maximum may be set.
-        [DispId(0x24)]
-        void SetMaxMediaBlocksFromDevice(IDiscRecorder2 discRecorder);
-
-        // Number of blocks in use
-        [DispId(3)]
-        int UsedBlocks { get; }
-
-        // Volume name
-        [DispId(4)]
-        string VolumeName { get; set; }
-
-        // Imported Volume name
-        [DispId(5)]
-        string ImportedVolumeName { get; }
-
-        // Boot image and boot options
-        [DispId(6)]
-        IBootOptions BootImageOptions { get; set; }
-
-        // Number of files in the image
-        [DispId(7)]
-        int FileCount { get; }
-
-        // Number of directories in the image
-        [DispId(8)]
-        int DirectoryCount { get; }
-
-        // Temp directory for stash files
-        [DispId(9)]
-        string WorkingDirectory { get; set; }
-
-        // Change point identifier
-        [DispId(10)]
-        int ChangePoint { get; }
-
-        // Strict file system compliance option
-        [DispId(11)]
-        bool StrictFileSystemCompliance { get; set; }
-
-        // If true, indicates restricted character set is being used for file and directory names
-        [DispId(12)]
-        bool UseRestrictedCharacterSet { get; set; }
-
-        // File systems to create
-        [DispId(13)]
-        FsiFileSystems FileSystemsToCreate { get; set; }
-
-        // File systems supported
-        [DispId(14)]
-        FsiFileSystems FileSystemsSupported { get; }
-
-        // UDF revision
-        [DispId(0x25)]
-        int UDFRevision { set; get; }
-
-        // UDF revision(s) supported
-        [DispId(0x1f)]
-        object[] UDFRevisionsSupported { get; }
-
-        // Select filesystem types and image size based on the current media
-        [DispId(0x20)]
-        void ChooseImageDefaults(IDiscRecorder2 discRecorder);
-
-        // Select filesystem types and image size based on the media type
-        [DispId(0x21)]
-        void ChooseImageDefaultsForMediaType(IMAPI_MEDIA_PHYSICAL_TYPE value);
-
-        // ISO compatibility level to create
-        [DispId(0x22)]
-        int ISO9660InterchangeLevel { set; get; }
-
-        // ISO compatibility level(s) supported
-        [DispId(0x26)]
-        object[] ISO9660InterchangeLevelsSupported { get; }
-
-        // Create result image stream
-        [DispId(15)]
-        IFileSystemImageResult CreateResultImage();
-
-        // Check for existance an item in the file system
-        [DispId(0x10)]
-        FsiItemType Exists(string FullPath);
-
-        // Return a string useful for identifying the current disc
-        [DispId(0x12)]
-        string CalculateDiscIdentifier();
-
-        // Identify file systems on a given disc
-        [DispId(0x13)]
-        FsiFileSystems IdentifyFileSystemsOnDisc(IDiscRecorder2 discRecorder);
-
-        // Identify which of the specified file systems would be imported by default
-        [DispId(20)]
-        FsiFileSystems GetDefaultFileSystemForImport(FsiFileSystems fileSystems);
-
-        // Import the default file system on the current disc
-        [DispId(0x15)]
-        FsiFileSystems ImportFileSystem();
-
-        // Import a specific file system on the current disc
-        [DispId(0x16)]
-        void ImportSpecificFileSystem(FsiFileSystems fileSystemToUse);
-
-        // Roll back to the specified change point
-        [DispId(0x17)]
-        void RollbackToChangePoint(int ChangePoint);
-
-        // Lock in changes
-        [DispId(0x18)]
-        void LockInChangePoint();
-
-        // Create a directory item with the specified name
-        [DispId(0x19)]
-        IFsiDirectoryItem CreateDirectoryItem(string Name);
-
-        // Create a file item with the specified name
-        [DispId(0x1a)]
-        IFsiFileItem CreateFileItem(string Name);
-
-        // Volume Name UDF
-        [DispId(0x1b)]
-        string VolumeNameUDF { get; }
-
-        // Volume name Joliet
-        [DispId(0x1c)]
-        string VolumeNameJoliet { get; }
-
-        // Volume name ISO 9660
-        [DispId(0x1d)]
-        string VolumeNameISO9660 { get; }
-
-        // Indicates whether or not IMAPI should stage the filesystem before the burn
-        [DispId(30)]
-        bool StageFiles { get; set; }
-
-        // Get array of available multi-session interfaces.
-        [DispId(40)]
-        object[] MultisessionInterfaces { get; set; }
-
-        //
-        // IFileSystemImage2
-        //
-
-        // Get boot options array for supporting multi-boot
-        [DispId(60)]
-        object[] BootImageOptionsArray { get;  set; }
-    }
-
-    /// <summary>
-    /// File system image (rev.3)"),
-    /// </summary>
-    [ComImport]
-    [Guid("7CFF842C-7E97-4807-8304-910DD8F7C051")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IFileSystemImage3
-    {
-        //
-        // IFileSystemImage
-        //
-
-        // Root directory item
-        [DispId(0)]
-        IFsiDirectoryItem Root { get; }
-
-        // Disc start block for the image
-        [DispId(1)]
-        int SessionStartBlock { get; set; }
-
-        // Maximum number of blocks available for the image
-        [DispId(2)]
-        int FreeMediaBlocks { get; set; }
-
-        // Set maximum number of blocks available based on the recorder 
-        // supported discs. 0 for unknown maximum may be set.
-        [DispId(0x24)]
-        void SetMaxMediaBlocksFromDevice(IDiscRecorder2 discRecorder);
-
-        // Number of blocks in use
-        [DispId(3)]
-        int UsedBlocks { get; }
-
-        // Volume name
-        [DispId(4)]
-        string VolumeName { get; set; }
-
-        // Imported Volume name
-        [DispId(5)]
-        string ImportedVolumeName { get; }
-
-        // Boot image and boot options
-        [DispId(6)]
-        IBootOptions BootImageOptions { get; set; }
-
-        // Number of files in the image
-        [DispId(7)]
-        int FileCount { get; }
-
-        // Number of directories in the image
-        [DispId(8)]
-        int DirectoryCount { get; }
-
-        // Temp directory for stash files
-        [DispId(9)]
-        string WorkingDirectory { get; set; }
-
-        // Change point identifier
-        [DispId(10)]
-        int ChangePoint { get; }
-
-        // Strict file system compliance option
-        [DispId(11)]
-        bool StrictFileSystemCompliance { get; set; }
-
-        // If true, indicates restricted character set is being used for file and directory names
-        [DispId(12)]
-        bool UseRestrictedCharacterSet { get; set; }
-
-        // File systems to create
-        [DispId(13)]
-        FsiFileSystems FileSystemsToCreate { get; set; }
-
-        // File systems supported
-        [DispId(14)]
-        FsiFileSystems FileSystemsSupported { get; }
-
-        // UDF revision
-        [DispId(0x25)]
-        int UDFRevision { set; get; }
-
-        // UDF revision(s) supported
-        [DispId(0x1f)]
-        object[] UDFRevisionsSupported { get; }
-
-        // Select filesystem types and image size based on the current media
-        [DispId(0x20)]
-        void ChooseImageDefaults(IDiscRecorder2 discRecorder);
-
-        // Select filesystem types and image size based on the media type
-        [DispId(0x21)]
-        void ChooseImageDefaultsForMediaType(IMAPI_MEDIA_PHYSICAL_TYPE value);
-
-        // ISO compatibility level to create
-        [DispId(0x22)]
-        int ISO9660InterchangeLevel { set; get; }
-
-        // ISO compatibility level(s) supported
-        [DispId(0x26)]
-        object[] ISO9660InterchangeLevelsSupported { get; }
-
-        // Create result image stream
-        [DispId(15)]
-        IFileSystemImageResult CreateResultImage();
-
-        // Check for existance an item in the file system
-        [DispId(0x10)]
-        FsiItemType Exists(string FullPath);
-
-        // Return a string useful for identifying the current disc
-        [DispId(0x12)]
-        string CalculateDiscIdentifier();
-
-        // Identify file systems on a given disc
-        [DispId(0x13)]
-        FsiFileSystems IdentifyFileSystemsOnDisc(IDiscRecorder2 discRecorder);
-
-        // Identify which of the specified file systems would be imported by default
-        [DispId(20)]
-        FsiFileSystems GetDefaultFileSystemForImport(FsiFileSystems fileSystems);
-
-        // Import the default file system on the current disc
-        [DispId(0x15)]
-        FsiFileSystems ImportFileSystem();
-
-        // Import a specific file system on the current disc
-        [DispId(0x16)]
-        void ImportSpecificFileSystem(FsiFileSystems fileSystemToUse);
-
-        // Roll back to the specified change point
-        [DispId(0x17)]
-        void RollbackToChangePoint(int ChangePoint);
-
-        // Lock in changes
-        [DispId(0x18)]
-        void LockInChangePoint();
-
-        // Create a directory item with the specified name
-        [DispId(0x19)]
-        IFsiDirectoryItem CreateDirectoryItem(string Name);
-
-        // Create a file item with the specified name
-        [DispId(0x1a)]
-        IFsiFileItem CreateFileItem(string Name);
-
-        // Volume Name UDF
-        [DispId(0x1b)]
-        string VolumeNameUDF { get; }
-
-        // Volume name Joliet
-        [DispId(0x1c)]
-        string VolumeNameJoliet { get; }
-
-        // Volume name ISO 9660
-        [DispId(0x1d)]
-        string VolumeNameISO9660 { get; }
-
-        // Indicates whether or not IMAPI should stage the filesystem before the burn
-        [DispId(30)]
-        bool StageFiles { get; set; }
-
-        // Get array of available multi-session interfaces.
-        [DispId(40)]
-        object[] MultisessionInterfaces { get; set; }
-
-        //
-        // IFileSystemImage2
-        //
-
-        // Get boot options array for supporting multi-boot
-        [DispId(60)]
-        object[] BootImageOptionsArray { get; set; }
-
-        //
-        // IFileSystemImage3
-        //
-
-        // If true, indicates that UDF Metadata and Metadata Mirror files are truly redundant,
-        // i.e. reference different extents
-        [DispId(0x3d)]
-        bool CreateRedundantUdfMetadataFiles { get; set; }
-
-        // Probe if a specific file system on the disc is appendable through IMAPI
-        [DispId(70)]
-        bool ProbeSpecificFileSystem(FsiFileSystems fileSystemToProbe);
-    }
-
-    /// <summary>
     /// FileSystemImage result stream
     /// </summary>
     [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
@@ -3103,19 +1465,6 @@ namespace IMAPI2.Interop
         // Remove a subtree with the specified relative path
         [DispId(0x23)]
         void RemoveTree(string path);
-    }
-
-    /// <summary>
-    /// FileSystemImage directory item (rev.2)
-    /// </summary>
-    [ComImport]
-    [Guid("F7FB4B9B-6D96-4D7B-9115-201B144811EF")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IFsiDirectoryItem2 : IFsiDirectoryItem
-    {
-        // Add files and directories from the specified source directory including named streams
-        [DispId(0x24)]
-        void AddTreeWithNamedStreams( string sourceDirectory, bool includeBaseDirectory);
     }
 
     /// <summary>
@@ -3252,7 +1601,7 @@ namespace IMAPI2.Interop
 
         // Get the list of the named streams of the file
         [DispId(0x2d)]
-        FsiNamedStreams FsiNamedStreams {  get; }
+        FsiNamedStreams FsiNamedStreams { get; }
 
         // Flag indicating if file item is a named stream of a file
         [DispId(0x2e)]
@@ -3260,11 +1609,11 @@ namespace IMAPI2.Interop
 
         // Add a new named stream to the collection
         [DispId(0x2f)]
-        void AddStream( string Name, FsiStream streamData);
+        void AddStream(string Name, FsiStream streamData);
 
         // Remove a specific named stream from the collection
         [DispId(0x30)]
-        void RemoveStream( string Name);
+        void RemoveStream(string Name);
 
         // Flag indicating if file is Real-Time
         [DispId(0x31)]
@@ -3329,99 +1678,7 @@ namespace IMAPI2.Interop
 
         // Get a non-variant enumerator for the named stream collection
         [DispId(0x52)]
-        EnumFsiItems EnumNamedStreams {  get; }
-    }
-
-    /// <summary>
-    /// ISO Image Manager: Helper object for ISO image file manipulation
-    /// </summary>
-    [ComImport]
-    [TypeLibType(TypeLibTypeFlags.FDispatchable)]
-    [Guid("6CA38BE5-FBBB-4800-95A1-A438865EB0D4")]
-    public interface IIsoImageManager
-    {
-        // Path to the ISO image file
-        [DispId(0x100)]
-        string path {  [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)] get; }
-
-        // Stream from the ISO image
-        [DispId(0x101)]
-        FsiStream Stream {  [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)] get; }
-
-        // Set path to the ISO image file, overwrites stream
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void SetPath( string Val);
-
-        // Set stream from the ISO image, overwrites path
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void SetStream([In, MarshalAs(UnmanagedType.Interface)] FsiStream Data);
-
-        // Validate if the ISO image file is a valid file
-        [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
-        void Validate();
-    }
-
-    [ComImport]
-    [Guid("27354150-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FDispatchable)]
-    public interface IMultisession
-    {
-        // Is it possible to write this multi-session type on the current media in its present state
-        [DispId(0x100)]
-        bool IsSupportedOnCurrentMediaState { get; }
-
-        // Is this multi-session type the one to use on current media
-        [DispId(0x101)]
-        bool InUse { set; get; }
-
-        // The disc recorder to use to import previous session(s)
-        [DispId(0x102)]
-        MsftDiscRecorder2 ImportRecorder { get; }
-    }
-
-    [ComImport]
-    [Guid("27354151-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FDispatchable)]
-    public interface IMultisessionSequential
-    {
-        //
-        // IMultisession
-        //
-        // Is it possible to write this multi-session type on the current media in its present state
-        [DispId(0x100)]
-        bool IsSupportedOnCurrentMediaState { get; }
-
-        // Is this multi-session type the one to use on current media
-        [DispId(0x101)]
-        bool InUse { set; get; }
-
-        // The disc recorder to use to import previous session(s)
-        [DispId(0x102)]
-        MsftDiscRecorder2 ImportRecorder { get; }
-
-        //
-        // IMultisessionSequential
-        //
-
-        // Is this the first data session on the media?
-        [DispId(0x200)]
-        bool IsFirstDataSession { get; }
-
-        // The first sector in the previous session on the media.
-        [DispId(0x201)]
-        int StartAddressOfPreviousSession { get; }
-
-        // The last sector in the previous session on the media
-        [DispId(0x202)]
-        int LastWrittenAddressOfPreviousSession { get; }
-
-        // Next writable address on the media (also used sectors).
-        [DispId(0x203)]
-        int NextWritableAddress { get; }
-
-        // Free sectors available on the media
-        [DispId(0x204)]
-        int FreeSectorsOnMedia { get; }
+        EnumFsiItems EnumNamedStreams { get; }
     }
 
     /// <summary>
@@ -3480,215 +1737,6 @@ namespace IMAPI2.Interop
         IEnumProgressItems EnumProgressItems { get; }
     }
 
-    [ComImport]
-    [Guid("25983550-9D65-49CE-B335-40630D901227")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IRawCDImageCreator
-    {
-        // Creates the result stream
-        [DispId(0x200)]
-        IStream CreateResultImage();
-
-        // Adds a track to the media (defaults to audio, always 2352 bytes/sector)
-        [DispId(0x201)]
-        int AddTrack(IMAPI_CD_SECTOR_TYPE dataType, [In, MarshalAs(UnmanagedType.Interface)] IStream data);
-
-        // Adds a special pregap to the first track, and implies an audio CD
-        [DispId(0x202)]
-        void AddSpecialPregap([In, MarshalAs(UnmanagedType.Interface)] IStream data);
-
-        // Adds an R-W subcode generation object to supply R-W subcode (i.e. CD-Text or CD-G).
-        [DispId(0x203)]
-        void AddSubcodeRWGenerator([In, MarshalAs(UnmanagedType.Interface)] IStream subcode);
-
-        [DispId(0x100)]
-        IMAPI_FORMAT2_RAW_CD_DATA_SECTOR_TYPE ResultingImageType { set; get; }
-
-        // Equal to (final user LBA+1), defines minimum disc size image can be written to.
-        [DispId(0x101)]
-        int StartOfLeadout { get; }
-
-        // 
-        [DispId(0x102)]
-        int StartOfLeadoutLimit { set; get; }
-
-        // Disables gapless recording of consecutive audio tracks
-        [DispId(0x103)]
-        bool DisableGaplessAudio { set; get; }
-
-        // The Media Catalog Number for the CD image
-        [DispId(260)]
-        string MediaCatalogNumber { set; get; }
-
-        // The starting track number (only for pure audio CDs)
-        [DispId(0x105)]
-        int StartingTrackNumber { set; get; }
-
-        [DispId(0x106)]
-        IRawCDImageTrackInfo this[int trackIndex] {  [DispId(0x106)] get; }
-
-        [DispId(0x107)]
-        int NumberOfExistingTracks { get; }
-
-        [DispId(0x108)]
-        int LastUsedUserSectorInImage { get; }
-
-        [DispId(0x109)]
-        object[] ExpectedTableOfContents { get; }
-    }
-
-    [ComImport]
-    [Guid("25983551-9D65-49CE-B335-40630D901227")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IRawCDImageTrackInfo
-    {
-        // The LBA of the first user sector in this track
-        [DispId(0x100)]
-        int StartingLba { get; }
-
-        // The number of user sectors in this track
-        [DispId(0x101)]
-        int SectorCount { get; }
-
-        // The track number assigned for this track
-        [DispId(0x102)]
-        int TrackNumber { get; }
-
-        // The type of data being recorded on the current sector.
-        [DispId(0x103)]
-        IMAPI_CD_SECTOR_TYPE SectorType { get; }
-
-        // The International Standard Recording Code (ISRC) for this track.
-        [DispId(260)]
-        string ISRC {  get;  set; }
-
-        // The digital audio copy setting for this track
-        [DispId(0x105)]
-        IMAPI_CD_TRACK_DIGITAL_COPY_SETTING DigitalAudioCopySetting { get; set; }
-
-        // The audio provided already has preemphasis applied (rare).
-        [DispId(0x106)]
-        bool AudioHasPreemphasis { get; set; }
-
-        // The list of current track-relative indexes within the CD track.
-        [DispId(0x107)]
-        object[] TrackIndexes { get; }
-
-        // Add the specified LBA (relative to the start of the track) as an index.
-        [DispId(0x200)]
-        void AddTrackIndex( int lbaOffset);
-
-        // Removes the specified LBA (relative to the start of the track) as an index.
-        [DispId(0x201)]
-        void ClearTrackIndex( int lbaOffset);
-    }
-
-
-    /// <summary>
-    /// Write Engine
-    /// </summary>
-    [ComImport]
-    [Guid("27354135-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    public interface IWriteEngine2
-    {
-        // Writes data provided in the IStream to the device
-        [DispId(0x200)]
-        void WriteSection(IStream data, int startingBlockAddress, int numberOfBlocks);
-
-        // Cancels the current write operation
-        [DispId(0x201)]
-        void CancelWrite();
-
-        // The disc recorder to use
-        [DispId(0x100)]
-        IDiscRecorder2Ex Recorder { set; get; }
-
-        // If true, uses WRITE12 with the AV bit set to one; else uses WRITE10
-        [DispId(0x101)]
-        bool UseStreamingWrite12 { set; get; }
-
-        // The approximate number of sectors per second the device can write at
-        // the start of the write process.  This is used to optimize sleep time
-        // in the write engine.
-        [DispId(0x102)]
-        int StartingSectorsPerSecond { set; get; }
-
-        // The approximate number of sectors per second the device can write at
-        // the end of the write process.  This is used to optimize sleep time 
-        // in the write engine.
-        [DispId(0x103)]
-        int EndingSectorsPerSecond { set; get; }
-
-        // The number of bytes to use for each sector during writing.
-        [DispId(260)]
-        int BytesPerSector { set; get; }
-
-        // Simple check to see if the object is currently writing to media.
-        [DispId(0x105)]
-        bool WriteInProgress { get; }
-    }
-
-    /// <summary>
-    /// CD Write Engine
-    /// </summary>
-    [ComImport]
-    [TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FNonExtensible)]
-    [Guid("27354136-7F64-5B0F-8F00-5D77AFBE261E")]
-    public interface IWriteEngine2EventArgs
-    {
-        // The starting logical block address for the current write operation.
-        [DispId(0x100)]
-        int StartLba { get; }
-
-        // The number of sectors being written for the current write operation.
-        [DispId(0x101)]
-        int SectorCount { get; }
-
-        // The last logical block address of data read for the current write operation.
-        [DispId(0x102)]
-        int LastReadLba { get; }
-
-        // The last logical block address of data written for the current write operation
-        [DispId(0x103)]
-        int LastWrittenLba { get; }
-
-        // The total bytes available in the system's cache buffer
-        [DispId(0x106)]
-        int TotalSystemBuffer { get; }
-
-        // The used bytes in the system's cache buffer
-        [DispId(0x107)]
-        int UsedSystemBuffer { get; }
-
-        // The free bytes in the system's cache buffer
-        [DispId(0x108)]
-        int FreeSystemBuffer { get; }
-    }
-
-    /// <summary>
-    /// A single optical drive Write Speed Configuration
-    /// </summary>
-    [ComImport]
-    [Guid("27354144-7F64-5B0F-8F00-5D77AFBE261E")]
-    [TypeLibType(TypeLibTypeFlags.FDispatchable|TypeLibTypeFlags.FDual)]
-    public interface IWriteSpeedDescriptor
-    {
-        // The type of media that this descriptor is valid for
-        [DispId(0x101)]
-        IMAPI_MEDIA_PHYSICAL_TYPE MediaType { get; }
-
-        // Whether or not this descriptor represents a writing configuration that uses 
-        // Pure CAV rotation control
-        [DispId(0x102)]
-        bool RotationTypeIsPureCAV { get; }
-
-        // The maximum speed at which the media will be written in the write configuration 
-        // represented by this descriptor
-        [DispId(0x103)]
-        int WriteSpeed { get; }
-    }
-
 
     #endregion // Interfaces
 
@@ -3706,7 +1754,7 @@ namespace IMAPI2.Interop
     public class MsftDiscFormat2DataClass
     {
     }
- 
+
     /// <summary>
     /// Microsoft IMAPIv2 Disc Master
     /// </summary>
@@ -3732,12 +1780,42 @@ namespace IMAPI2.Interop
     {
     }
 
-
     [ComImport]
     [Guid("2735412D-7F64-5B0F-8F00-5D77AFBE261E")]
     [TypeLibType(TypeLibTypeFlags.FCanCreate)]
     [ClassInterface(ClassInterfaceType.None)]
-    public class MsftDiscRecorder2Class 
+    public class MsftDiscRecorder2Class
+    {
+    }
+
+    [ComImport]
+    [Guid("2735412C-7F64-5B0F-8F00-5D77AFBE261E")]
+    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
+    [ComSourceInterfaces("DWriteEngine2Events\0")]
+    [ClassInterface(ClassInterfaceType.None)]
+    public class MsftWriteEngine2Class
+    {
+    }
+
+    [ComImport]
+    [ClassInterface(ClassInterfaceType.None)]
+    [Guid("27354123-7F64-5B0F-8F00-5D77AFBE261E")]
+    public class MsftWriteSpeedDescriptorClass
+    {
+    }
+
+    [ComImport]
+    [CoClass(typeof(BootOptionsClass))]
+    [Guid("2C941FD4-975B-59BE-A960-9A2A262853A5")]
+    public interface BootOptions : IBootOptions
+    {
+    }
+
+    [ComImport]
+    [ClassInterface(ClassInterfaceType.None)]
+    [TypeLibType(TypeLibTypeFlags.FCanCreate)]
+    [Guid("2C941FCE-975B-59BE-A960-9A2A262853A5")]
+    public class BootOptionsClass
     {
     }
 
@@ -3752,6 +1830,41 @@ namespace IMAPI2.Interop
     [Guid("2C941FC6-975B-59BE-A960-9A2A262853A5")]
     [ClassInterface(ClassInterfaceType.None)]
     public class EnumFsiItemsClass
+    {
+    }
+
+    [ComImport]
+    [Guid("2C941FD6-975B-59BE-A960-9A2A262853A5")]
+    [CoClass(typeof(EnumProgressItemsClass))]
+    public interface EnumProgressItems : IEnumProgressItems
+    {
+    }
+
+    [ComImport]
+    [ClassInterface(ClassInterfaceType.None)]
+    [Guid("2C941FCA-975B-59BE-A960-9A2A262853A5")]
+    public class EnumProgressItemsClass
+    {
+    }
+
+    [ComImport]
+    [Guid("2C941FD8-975B-59BE-A960-9A2A262853A5")]
+    [CoClass(typeof(FileSystemImageResultClass))]
+    public interface FileSystemImageResult : IFileSystemImageResult
+    {
+    }
+
+    [ComImport]
+    [Guid("2C941FCC-975B-59BE-A960-9A2A262853A5")]
+    [ClassInterface(ClassInterfaceType.None)]
+    public class FileSystemImageResultClass
+    {
+    }
+
+    [ComImport]
+    [ClassInterface(ClassInterfaceType.None)]
+    [Guid("2C941FC8-975B-59BE-A960-9A2A262853A5")]
+    public class FsiDirectoryItemClass
     {
     }
 
@@ -3812,7 +1925,34 @@ namespace IMAPI2.Interop
     public class MsftFileSystemImageClass
     {
     }
+
+
+
+    [ComImport]
+    [Guid("2C941FD5-975B-59BE-A960-9A2A262853A5")]
+    [CoClass(typeof(ProgressItemClass))]
+    public interface ProgressItem : IProgressItem
+    {
+    }
+
+    [ComImport]
+    [Guid("2C941FCB-975B-59BE-A960-9A2A262853A5")]
+    [ClassInterface(ClassInterfaceType.None)]
+    public class ProgressItemClass
+    {
+    }
+
+    [ComImport]
+    [Guid("2C941FD7-975B-59BE-A960-9A2A262853A5")]
+    [CoClass(typeof(ProgressItemsClass))]
+    public interface ProgressItems : IProgressItems
+    {
+    }
+
+    [ComImport]
+    [Guid("2C941FC9-975B-59BE-A960-9A2A262853A5")]
+    [ClassInterface(ClassInterfaceType.None)]
+    public class ProgressItemsClass
+    {
+    }
 }
-
-
-
